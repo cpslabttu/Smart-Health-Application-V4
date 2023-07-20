@@ -822,19 +822,19 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                     if (algoCounter == 9) {
                                         if(predictforArrhythmia == 2){
                                             for (Double EcgData : EcgDataWhileAbnormal) {
-                                                String[] row = {Double.toString(EcgData), "Arrhythmic", formattedTime};
+                                                String[] row = {Double.toString(EcgData)};
                                                 writerEcgDataWhileAbnormal.writeNext(row);
                                             }
                                         }
                                         else if (predictforArrhythmia == 1) {
                                             for (Double EcgData : EcgDataWhileAbnormal) {
-                                                String[] row = {Double.toString(EcgData), "SV", formattedTime};
+                                                String[] row = {Double.toString(EcgData)};
                                                 writerEcgDataWhileAbnormal.writeNext(row);
                                             }
                                         }
                                         else if (predictforArrhythmia == 3) {
                                             for (Double EcgData : EcgDataWhileAbnormal) {
-                                                String[] row = {Double.toString(EcgData), "Fusion", formattedTime};
+                                                String[] row = {Double.toString(EcgData)};
                                                 writerEcgDataWhileAbnormal.writeNext(row);
                                             }
                                         }
@@ -845,19 +845,21 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                             int pClass = (int) predictClass[algoC];
                                             classes[pClass]++;
                                         }
-                                        predictforArrhythmia = getMaxIndexforInt(classes);
-//                                        if(classes[0] > 9) {
-//                                            predictforArrhythmia = 0;
-//                                        }
-//                                        else if (classes[0] > 8){
-//                                            predictforArrhythmia = 3;
-//                                        }
-//                                        else{
-//                                            predictforArrhythmia = 1;
-//                                        }
+                                        //predictforArrhythmia = getMaxIndexforInt(classes);
+                                        if(classes[0] > 9) {
+                                            predictforArrhythmia = 0;
+                                        }
+                                        else if (classes[0] > 8){
+                                            predictforArrhythmia = 3;
+                                        }
+                                        else{
+                                            predictforArrhythmia = 1;
+                                        }
                                         Date currentTime = new Date();
                                         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-                                        formattedTime = sdf.format(currentTime);
+                                        long currentTimeMillis = System.currentTimeMillis();
+                                        formattedTime = sdf.format(currentTime) + String.format(":%02d", currentTimeMillis % 1000 / 10);
+                                        System.out.println(formattedTime);
 
                                         for (int cls = 0; cls < classes.length; cls++) {
                                             System.out.println("Classes " + cls + " " + classes[cls] + " " + predictforArrhythmia + " " + getMaxIndexforInt(classes));
@@ -873,22 +875,28 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                 System.out.println("PredictClass " + algoCounter + " " + predictforArrhythmia);
 
                                 if (predictforArrhythmia == 2 && algoCounter == 9) {
+                                    String[] top = {"Arrhythmic", formattedTime, "Sampling Rate: 1kHZ"};
+                                    writerEcgDataWhileAbnormal.writeNext(top);
                                     for (Double EcgData : EcgDataWhileAbnormal) {
-                                        String[] row = {Double.toString(EcgData), "Arrhythmic", formattedTime};
+                                        String[] row = {Double.toString(EcgData)};
                                         writerEcgDataWhileAbnormal.writeNext(row);
                                     }
                                     toggleState(false, false, true, "Arrhythmic");
                                 } else if (predictforArrhythmia == 0 && algoCounter == 9) {
                                     toggleState(true, false, false, "NORMAL");
                                 } else if (predictforArrhythmia == 1 && algoCounter == 9) {
+                                    String[] top = {"SV", formattedTime, "Sampling Rate: 1kHZ"};
+                                    writerEcgDataWhileAbnormal.writeNext(top);
                                     for (Double EcgData : EcgDataWhileAbnormal) {
-                                        String[] row = {Double.toString(EcgData), "SV", formattedTime};
+                                        String[] row = {Double.toString(EcgData)};
                                         writerEcgDataWhileAbnormal.writeNext(row);
                                     }
                                     toggleState(false, true, false, "SV");
                                 } else if (predictforArrhythmia == 3 && algoCounter == 9) {
+                                    String[] top = {"Fusion", formattedTime, "Sampling Rate: 1kHZ"};
+                                    writerEcgDataWhileAbnormal.writeNext(top);
                                     for (Double EcgData : EcgDataWhileAbnormal) {
-                                        String[] row = {Double.toString(EcgData), "Fusion", formattedTime};
+                                        String[] row = {Double.toString(EcgData)};
                                         writerEcgDataWhileAbnormal.writeNext(row);
                                     }
                                     toggleState(false, true, false, "Fusion");
