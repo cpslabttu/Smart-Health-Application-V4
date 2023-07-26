@@ -607,7 +607,11 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     private CSVWriter writerEcgDataWhileAbnormal = null;
     private String formattedTime = null;
 
-
+    private ArrayList<Double> vectorValueList = new ArrayList<>();
+    private int vectorValueCounter = 0;
+    private int respirationPeaks = 0;
+    private int respirationPeakCounter = 0;
+    private int respirationRate = 0;
 
 
     @Override
@@ -634,9 +638,9 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             String dataString = BleUtils.bytesToHex2(subData);
 
             String[] strings = dataString.split(" ");
-            String[] dataStrings= new String[strings.length/2];
+            String[] dataStrings= new String[48];
             int l= 0;
-            for(int j=0;j<strings.length/2;j++){
+            for(int j=0;j<48;j++){
                 if(strings[l+1].equals("FF")){
                     dataStrings[j] = String.valueOf(subData[l]);
                 }
@@ -645,6 +649,42 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                     dataStrings[j] = String.valueOf(Integer.parseInt(dataStrings[j], 16));
                 }
                 l+=2;
+            }
+
+            String xAxis = strings[98] + strings[97];
+            int xAxisInt = Integer.parseInt(xAxis, 16);
+            if(xAxisInt > 32767){
+                xAxisInt = xAxisInt - 65536;
+            }
+
+            String yAxis = strings[100] + strings[99];
+            int yAxisInt = Integer.parseInt(yAxis, 16);
+            if(yAxisInt > 32767){
+                yAxisInt = yAxisInt - 65536;
+            }
+
+            String zAxis = strings[102] + strings[101];
+            int zAxisInt = Integer.parseInt(zAxis, 16);
+            if(zAxisInt > 32767){
+                zAxisInt = zAxisInt - 65536;
+            }
+
+            double vectorValue = Math.sqrt(xAxisInt * xAxisInt + yAxisInt * yAxisInt + zAxisInt * zAxisInt);
+            vectorValueList.add(vectorValue);
+            vectorValueCounter++;
+            if(vectorValueCounter == 200){
+                respirationPeaks = findPeaksforVector(vectorValueList);
+                vectorValueList = new ArrayList<>();
+                vectorValueCounter = 0;
+                respirationPeakCounter++;
+                respirationRate += respirationPeaks;
+                System.out.println("Respiration Peaks " + respirationPeaks + " " + respirationPeakCounter);
+
+                if (respirationPeakCounter == 6){
+                    System.out.println("Respiration Rate " + respirationRate);
+                    respirationPeakCounter = 0;
+                    respirationRate = 0;
+                }
             }
 
 
@@ -692,7 +732,6 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             if(folder.exists()) {
                 synchronized (heatRateData) {
                     try {
-                        // Create the ECGData.csv file
                         File fileECG = new File(folder, "ECGData.csv");
                         if (!fileECG.exists()) {
                             fileECG.createNewFile();
@@ -703,7 +742,6 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 //                            writerECG.writeAll(Collections.singleton(new String[]{"ECG Raw Data"}));
 //                        }
 
-                        // Create the HeartRate.csv file
                         File fileHeartRate = new File(folder, "HeartRate.csv");
                         if (!fileHeartRate.exists()) {
                             fileHeartRate.createNewFile();
@@ -845,16 +883,16 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                             int pClass = (int) predictClass[algoC];
                                             classes[pClass]++;
                                         }
-                                        //predictforArrhythmia = getMaxIndexforInt(classes);
-                                        if(classes[0] > 9) {
-                                            predictforArrhythmia = 0;
-                                        }
-                                        else if (classes[0] > 8){
-                                            predictforArrhythmia = 3;
-                                        }
-                                        else{
-                                            predictforArrhythmia = 1;
-                                        }
+                                        predictforArrhythmia = getMaxIndexforInt(classes);
+//                                        if(classes[0] > 9) {
+//                                            predictforArrhythmia = 0;
+//                                        }
+//                                        else if (classes[0] > 8){
+//                                            predictforArrhythmia = 3;
+//                                        }
+//                                        else{
+//                                            predictforArrhythmia = 1;
+//                                        }
                                         Date currentTime = new Date();
                                         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
                                         long currentTimeMillis = System.currentTimeMillis();
@@ -1136,7 +1174,40 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         fileOrDirectory.delete();
     }
 
+    public static int findPeaksforVector(List<Double> signal) {
+        int peakCount = 0;
+        List<Double> smoothedSignal = applyMovingAverage(signal, 3); // Adjust the window size as needed
 
+        for (int i = 1; i < smoothedSignal.size() - 1; i++) {
+            double previousValue = smoothedSignal.get(i - 1);
+            double currentValue = smoothedSignal.get(i);
+            double nextValue = smoothedSignal.get(i + 1);
+
+            if (currentValue < previousValue && currentValue < nextValue) {
+                peakCount++;
+            }
+        }
+
+        return peakCount;
+    }
+
+    public static List<Double> applyMovingAverage(List<Double> signal, int windowSize) {
+        List<Double> smoothedSignal = new ArrayList<>();
+
+        for (int i = 0; i < signal.size(); i++) {
+            double sum = 0.0;
+            int count = 0;
+
+            for (int j = Math.max(0, i - windowSize); j <= Math.min(signal.size() - 1, i + windowSize); j++) {
+                sum += signal.get(j);
+                count++;
+            }
+
+            smoothedSignal.add(sum / count);
+        }
+
+        return smoothedSignal;
+    }
 
 
     // endregion

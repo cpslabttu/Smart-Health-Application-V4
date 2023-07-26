@@ -2,66 +2,9 @@ package com.example.cps_lab.app;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.math3.analysis.integration.TrapezoidIntegrator;
 
 public class RPeakDetector {
-//    public static ArrayList<Integer> detectRPeaks(List<Double> data, int sampleRate) {
-//        ArrayList<Integer> rPeaks = new ArrayList<Integer>();
-//        double[] filteredData = new double[data.size()];
-//        double[] differentiatedData = new double[data.size()];
-//        double[] squaredData = new double[data.size()];
-//        double[] integratedData = new double[data.size()];
-//
-//        // Low pass filtering
-//        double alpha = 0.75;
-//        filteredData[0] = data.get(0);
-//        for (int i = 1; i < data.size(); i++) {
-//            filteredData[i] = alpha * filteredData[i - 1] + (1 - alpha) * data.get(i);
-//        }
-//
-//        // Differentiation
-//        for (int i = 0; i < data.size() - 1; i++) {
-//            differentiatedData[i] = filteredData[i + 1] - filteredData[i];
-//        }
-//
-//        // Squaring
-//        for (int i = 0; i < data.size(); i++) {
-//            squaredData[i] = differentiatedData[i] * differentiatedData[i];
-//        }
-//
-//        // Integration
-//        double integrationConstant = sampleRate / 15.0;
-//        integratedData[0] = squaredData[0];
-//        for (int i = 1; i < data.size(); i++) {
-//            integratedData[i] = integratedData[i - 1] + squaredData[i];
-//        }
-//
-//        // Find R peaks
-//        double threshold = integratedData[0] / 2;
-//        int noOfPeaks = 0;
-//        for (int i = 1; i < data.size(); i++) {
-//            if (integratedData[i] > threshold && integratedData[i] > integratedData[i - 1]) {
-//                noOfPeaks++;
-//                if (noOfPeaks == 2) {
-//                    threshold = integratedData[i] / 2;
-//                    noOfPeaks = 1;
-//                }
-//                if (i > 0 && i < data.size() - 1) {
-//                    int peak = i;
-//                    for (int j = i - 1; j > 0; j--) {
-//                        if (differentiatedData[j] < 0) {
-//                            peak = j;
-//                        } else {
-//                            break;
-//                        }
-//                    }
-//                    rPeaks.add(peak);
-//                }
-//            }
-//        }
-//
-//        return rPeaks;
-//    }
+
 
     public static ArrayList<Integer> detectRPeaks(List<Double> data){
         double[] ecg = new double[data.size()];
