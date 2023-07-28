@@ -245,36 +245,26 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                     }
                     writerEcgDataWhileAbnormal = new CSVWriter(new FileWriter(fileEcgDataWhileAbnormal, true));
                     // Write the data for each column in separate rows
-                    arrhymicDatacounter--;
-                    svDataCounter--;
-                    fusionDataCounter--;
-                    while (arrhymicDatacounter >= 0 || svDataCounter >= 0 || fusionDataCounter >= 0) {
-                        // Calculate the maximum length of data in the current columns
-                        int maxLength = Math.max(
-                                arrhymicDatacounter >= 0 && arrhymicDatacounter < arrhythmicData.size() ? arrhythmicData.get(arrhymicDatacounter).size() : 0,
-                                Math.max(
-                                        svDataCounter >= 0 && svDataCounter < svData.size() ? svData.get(svDataCounter).size() : 0,
-                                        fusionDataCounter >= 0 && fusionDataCounter < fusionData.size() ? fusionData.get(fusionDataCounter).size() : 0
-                                )
-                        );
+                    int maxLength = 0;
 
-                        for(int i=0;i<maxLength;i++){
-                            // Get the values for each column and handle cases where data might be missing
-                            String arrhythmicValue = arrhymicDatacounter >= 0 && i < arrhythmicData.get(arrhymicDatacounter).size()
-                                    ? arrhythmicData.get(arrhymicDatacounter).get(i) : "";
-
-                            String svValue = svDataCounter >= 0 && i < svData.get(svDataCounter).size()
-                                    ? svData.get(svDataCounter).get(i) : "";
-
-                            String fusionValue = fusionDataCounter >= 0 && i < fusionData.get(fusionDataCounter).size()
-                                    ? fusionData.get(fusionDataCounter).get(i) : "";
-
-                            String[] top = {arrhythmicValue, svValue, fusionValue};
-                            writerEcgDataWhileAbnormal.writeNext(top);
+                    for (List<String> list : allArrhythmicData) {
+                        int currentLength = list.size();
+                        if (currentLength > maxLength) {
+                            maxLength = currentLength;
                         }
-                        arrhymicDatacounter--;
-                        svDataCounter--;
-                        fusionDataCounter--;
+                    }
+
+                    System.out.println("Maximum length of List<String>: " + maxLength + " " + allArrhythmicData.size());
+
+                    for(int i=0;i<maxLength;i++){
+                        String[] top = new String[allArrhythmicData.size()];
+                        int j = 0;
+                        for(List<String> list : allArrhythmicData){
+                            String arrhythmicValue = i < list.size() ? list.get(i) : "";
+                            top[j] = arrhythmicValue;
+                            j++;
+                        }
+                        writerEcgDataWhileAbnormal.writeNext(top);
                     }
 
                     writerEcgDataWhileAbnormal.close();
@@ -654,12 +644,9 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     private int respirationRate = 0;
 
     // Create separate lists to store data for each column
-    List<List<String>> arrhythmicData = new ArrayList<>();
-    int arrhymicDatacounter = 0;
-    List<List<String>> svData = new ArrayList<>();
-    int svDataCounter = 0;
-    List<List<String>> fusionData = new ArrayList<>();
-    int fusionDataCounter = 0;
+    List<List<String>> allArrhythmicData = new ArrayList<>();
+    int allArrhymicDatacounter = 0;
+
 
 
     @Override
@@ -904,21 +891,21 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                     if (algoCounter == 9) {
                                         if(predictforArrhythmia == 2){
                                             for (Double EcgData : EcgDataWhileAbnormal) {
-                                                arrhythmicData.get(arrhymicDatacounter).add(Double.toString(EcgData));
+                                                allArrhythmicData.get(allArrhymicDatacounter).add(Double.toString(EcgData));
                                             }
-                                            arrhymicDatacounter++;
+                                            allArrhymicDatacounter++;
                                         }
                                         else if (predictforArrhythmia == 1) {
                                             for (Double EcgData : EcgDataWhileAbnormal) {
-                                                svData.get(svDataCounter).add(Double.toString(EcgData));
+                                                allArrhythmicData.get(allArrhymicDatacounter).add(Double.toString(EcgData));
                                             }
-                                            svDataCounter++;
+                                            allArrhymicDatacounter++;
                                         }
                                         else if (predictforArrhythmia == 3) {
                                             for (Double EcgData : EcgDataWhileAbnormal) {
-                                                fusionData.get(fusionDataCounter).add(Double.toString(EcgData));
+                                                allArrhythmicData.get(allArrhymicDatacounter).add(Double.toString(EcgData));
                                             }
-                                            fusionDataCounter++;
+                                            allArrhymicDatacounter++;
                                         }
 
                                         int[] classes = new int[5];
@@ -957,29 +944,29 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                 System.out.println("PredictClass " + algoCounter + " " + predictforArrhythmia);
 
                                 if (predictforArrhythmia == 2 && algoCounter == 9) {
-                                    String top = "Arrhythmic" + formattedTime + "SR: 1kHZ";
-                                    arrhythmicData.add(new ArrayList<>());
-                                    arrhythmicData.get(arrhymicDatacounter).add(top);
+                                    String top = "Arrhythmic " + formattedTime + " SR: 1kHZ";
+                                    allArrhythmicData.add(new ArrayList<>());
+                                    allArrhythmicData.get(allArrhymicDatacounter).add(top);
                                     for (Double EcgData : EcgDataWhileAbnormal) {
-                                        arrhythmicData.get(arrhymicDatacounter).add(Double.toString(EcgData));
+                                        allArrhythmicData.get(allArrhymicDatacounter).add(Double.toString(EcgData));
                                     }
                                     toggleState(false, false, true, "Arrhythmic");
                                 } else if (predictforArrhythmia == 0 && algoCounter == 9) {
                                     toggleState(true, false, false, "NORMAL");
                                 } else if (predictforArrhythmia == 1 && algoCounter == 9) {
                                     String top = "SV" + formattedTime + "SR: 1kHZ";
-                                    svData.add(new ArrayList<>());
-                                    svData.get(svDataCounter).add(top);
+                                    allArrhythmicData.add(new ArrayList<>());
+                                    allArrhythmicData.get(allArrhymicDatacounter).add(top);
                                     for (Double EcgData : EcgDataWhileAbnormal) {
-                                        svData.get(svDataCounter).add(Double.toString(EcgData));
+                                        allArrhythmicData.get(allArrhymicDatacounter).add(Double.toString(EcgData));
                                     }
                                     toggleState(false, true, false, "SV");
                                 } else if (predictforArrhythmia == 3 && algoCounter == 9) {
                                     String top = "Fusion" + formattedTime + "SR: 1kHZ";
-                                    fusionData.add(new ArrayList<>());
-                                    fusionData.get(fusionDataCounter).add(top);
+                                    allArrhythmicData.add(new ArrayList<>());
+                                    allArrhythmicData.get(allArrhymicDatacounter).add(top);
                                     for (Double EcgData : EcgDataWhileAbnormal) {
-                                        fusionData.get(fusionDataCounter).add(Double.toString(EcgData));
+                                        allArrhythmicData.get(allArrhymicDatacounter).add(Double.toString(EcgData));
                                     }
                                     toggleState(false, true, false, "Fusion");
                                 } else if (predictforArrhythmia == 4 && algoCounter == 9) {
