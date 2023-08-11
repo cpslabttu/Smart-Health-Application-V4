@@ -954,7 +954,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                 } else if (predictforArrhythmia == 0 && algoCounter == 9) {
                                     toggleState(true, false, false, "NORMAL");
                                 } else if (predictforArrhythmia == 1 && algoCounter == 9) {
-                                    String top = "SV" + formattedTime + "SR: 1kHZ";
+                                    String top = "SV " + formattedTime + " SR: 1kHZ";
                                     allArrhythmicData.add(new ArrayList<>());
                                     allArrhythmicData.get(allArrhymicDatacounter).add(top);
                                     for (Double EcgData : EcgDataWhileAbnormal) {
@@ -962,7 +962,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                     }
                                     toggleState(false, true, false, "SV");
                                 } else if (predictforArrhythmia == 3 && algoCounter == 9) {
-                                    String top = "Fusion" + formattedTime + "SR: 1kHZ";
+                                    String top = "Fusion " + formattedTime + " SR: 1kHZ";
                                     allArrhythmicData.add(new ArrayList<>());
                                     allArrhythmicData.get(allArrhymicDatacounter).add(top);
                                     for (Double EcgData : EcgDataWhileAbnormal) {
