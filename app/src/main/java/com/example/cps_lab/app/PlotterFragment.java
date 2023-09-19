@@ -42,6 +42,8 @@ import com.example.cps_lab.ble.central.BleScanner;
 import com.example.cps_lab.ble.central.UartDataManager;
 import com.example.cps_lab.ml.AnnClassifier;
 import com.example.cps_lab.ml.AnnMulticlass;
+import com.example.cps_lab.ml.AnnNoisyNormal;
+import com.example.cps_lab.ml.AnnNoisyNotNoisy;
 import com.example.cps_lab.ml.ArrhythmiaOnEcgClassification;
 import com.example.cps_lab.ml.CnnMulticlass;
 import com.example.cps_lab.ml.RnnLstmMulticlass;
@@ -95,6 +97,9 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     // UI
     private SeekBar xMaxEntriesSeekBar;
     private LineChart mChart;
+    private LineChart mSecondChart;
+    private LineChart mThirdChart;
+    private LineChart mFourthChart;
     private EditText heartRateEditText;
     private EditText avgHeartRateEditText;
 
@@ -112,6 +117,9 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     private int mVisibleInterval = 20;        // in seconds
     private Map<String, DashPathEffect> mLineDashPathEffectForPeripheral = new HashMap<>();
     private Map<String, List<LineDataSet>> mDataSetsForPeripheral = new HashMap<>();
+    private Map<String, List<LineDataSet>> mSecondDataSetsForPeripheral = new HashMap<>();
+    private Map<String, List<LineDataSet>> mThirdDataSetsForPeripheral = new HashMap<>();
+    private Map<String, List<LineDataSet>> mForthDataSetsForPeripheral = new HashMap<>();
     private LineDataSet mLastDataSetModified;
     private final Handler mMainHandler = new Handler(Looper.getMainLooper());
 
@@ -159,6 +167,9 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 
         // UI
         mChart = view.findViewById(R.id.chart);
+        mSecondChart = view.findViewById(R.id.secondchart);
+        mThirdChart = view.findViewById(R.id.thirdchart);
+        mFourthChart = view.findViewById(R.id.fourthchart);
         heartRateEditText= view.findViewById(R.id.heartBeatRate);
         avgHeartRateEditText= view.findViewById(R.id.avgheartBeatRate);
         WeakReference<PlotterFragment> weakThis = new WeakReference<>(this);
@@ -169,7 +180,13 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                 if (fragment != null) {
                     fragment.mIsAutoScrollEnabled = isChecked;
                     fragment.mChart.setDragEnabled(!isChecked);
+                    fragment.mSecondChart.setDragEnabled(!isChecked);
+                    fragment.mThirdChart.setDragEnabled(!isChecked);
+                    fragment.mFourthChart.setDragEnabled(!isChecked);
                     fragment.notifyDataSetChanged();
+                    fragment.notifySecondDataSetChanged();
+                    fragment.notifyThirdDataSetChanged();
+                    fragment.notifyForthDataSetChanged();
                 }
             }
         });
@@ -181,6 +198,9 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                     final float factor = progress / 100.f;
                     mVisibleInterval = Math.round((xMaxEntriesMax - xMaxEntriesMin) * factor + xMaxEntriesMin);
                     notifyDataSetChanged();
+                    notifySecondDataSetChanged();
+                    notifyThirdDataSetChanged();
+                    notifyForthDataSetChanged();
                 }
             }
 
@@ -195,6 +215,9 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 
         autoscrollSwitch.setChecked(mIsAutoScrollEnabled);
         mChart.setDragEnabled(!mIsAutoScrollEnabled);
+        mSecondChart.setDragEnabled(!mIsAutoScrollEnabled);
+        mThirdChart.setDragEnabled(!mIsAutoScrollEnabled);
+        mFourthChart.setDragEnabled(!mIsAutoScrollEnabled);
         setXMaxEntriesValue(mVisibleInterval);
 
         // Setup
@@ -345,6 +368,14 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.menu_plotter, menu);
+        MenuItem plotterMenuHelp = menu.findItem(R.id.action_help);
+        MenuItem plotterMenuCsv = menu.findItem(R.id.action_export);
+        if (plotterMenuHelp != null) {
+            menu.removeItem(plotterMenuHelp.getItemId());
+        }
+        if (plotterMenuCsv != null) {
+            menu.removeItem(plotterMenuCsv.getItemId());
+        }
     }
 
     @Override
@@ -515,14 +546,39 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     private void setupChart() {
 
         mChart.getDescription().setEnabled(false);
+        mSecondChart.getDescription().setEnabled(false);
+        mThirdChart.getDescription().setEnabled(false);
+        mFourthChart.getDescription().setEnabled(false);
+
         mChart.getXAxis().setGranularityEnabled(true);
+        mSecondChart.getXAxis().setGranularityEnabled(true);
+        mThirdChart.getXAxis().setGranularityEnabled(true);
+        mFourthChart.getXAxis().setGranularityEnabled(true);
+
         mChart.getXAxis().setGranularity(5);
+        mSecondChart.getXAxis().setGranularity(5);
+        mThirdChart.getXAxis().setGranularity(5);
+        mFourthChart.getXAxis().setGranularity(5);
 
         mChart.setExtraOffsets(10, 10, 10, 0);
+        mSecondChart.setExtraOffsets(10, 10, 10, 0);
+        mThirdChart.setExtraOffsets(10, 10, 10, 0);
+        mFourthChart.setExtraOffsets(10, 10, 10, 0);
+
         mChart.getLegend().setEnabled(false);
+        mSecondChart.getLegend().setEnabled(false);
+        mThirdChart.getLegend().setEnabled(false);
+        mFourthChart.getLegend().setEnabled(false);
 
         mChart.setNoDataTextColor(Color.BLACK);
+        mSecondChart.setNoDataTextColor(Color.BLACK);
+        mThirdChart.setNoDataTextColor(Color.BLACK);
+        mFourthChart.setNoDataTextColor(Color.BLACK);
+
         mChart.setNoDataText(getString(R.string.plotter_nodata));
+        mSecondChart.setNoDataText(getString(R.string.plotter_nodata));
+        mThirdChart.setNoDataText(getString(R.string.plotter_nodata));
+        mFourthChart.setNoDataText(getString(R.string.plotter_nodata));
     }
 
     private void setXMaxEntriesValue(int value) {
@@ -562,6 +618,99 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         }
     }
 
+    private void addSecondEntry(@NonNull String peripheralIdentifier, int index, float value, float timestamp) {
+        Entry ent = new Entry(timestamp, value);
+
+        boolean dataExists = false;
+        List<LineDataSet> datas = mSecondDataSetsForPeripheral.get(peripheralIdentifier);
+        if (datas != null) {
+            if (index < datas.size()) {
+                // Add entry to existing dataset
+                LineDataSet dataSet = datas.get(index);
+                dataSet.addEntry(ent);
+                dataExists = true;
+            }
+        }
+
+        if (!dataExists) {
+            appendSecondDataset(peripheralIdentifier, ent, index);
+
+            List<ILineDataSet> allDatas = new ArrayList<>();
+            for (List<LineDataSet> dataLists : mSecondDataSetsForPeripheral.values()) {
+                allDatas.addAll(dataLists);
+            }
+            final LineData line = new LineData(allDatas);
+            mSecondChart.setData(line);
+        }
+
+        List<LineDataSet> data2 = mSecondDataSetsForPeripheral.get(peripheralIdentifier);
+        if (data2 != null && index < data2.size()) {
+            mLastDataSetModified = data2.get(index);
+        }
+    }
+
+    private void addThirdEntry(@NonNull String peripheralIdentifier, int index, float value, float timestamp) {
+        Entry ent = new Entry(timestamp, value);
+
+        boolean dataExists = false;
+        List<LineDataSet> datas = mThirdDataSetsForPeripheral.get(peripheralIdentifier);
+        if (datas != null) {
+            if (index < datas.size()) {
+                // Add entry to existing dataset
+                LineDataSet dataSet = datas.get(index);
+                dataSet.addEntry(ent);
+                dataExists = true;
+            }
+        }
+
+        if (!dataExists) {
+            appendThirdDataset(peripheralIdentifier, ent, index);
+
+            List<ILineDataSet> allDatas = new ArrayList<>();
+            for (List<LineDataSet> dataLists : mThirdDataSetsForPeripheral.values()) {
+                allDatas.addAll(dataLists);
+            }
+            final LineData line = new LineData(allDatas);
+            mThirdChart.setData(line);
+        }
+
+        List<LineDataSet> data2 = mThirdDataSetsForPeripheral.get(peripheralIdentifier);
+        if (data2 != null && index < data2.size()) {
+            mLastDataSetModified = data2.get(index);
+        }
+    }
+
+    private void addForthEntry(@NonNull String peripheralIdentifier, int index, float value, float timestamp) {
+        Entry ent = new Entry(timestamp, value);
+
+        boolean dataExists = false;
+        List<LineDataSet> datas = mForthDataSetsForPeripheral.get(peripheralIdentifier);
+        if (datas != null) {
+            if (index < datas.size()) {
+                // Add entry to existing dataset
+                LineDataSet dataSet = datas.get(index);
+                dataSet.addEntry(ent);
+                dataExists = true;
+            }
+        }
+
+        if (!dataExists) {
+            appendForthDataset(peripheralIdentifier, ent, index);
+
+            List<ILineDataSet> allDatas = new ArrayList<>();
+            for (List<LineDataSet> dataLists : mForthDataSetsForPeripheral.values()) {
+                allDatas.addAll(dataLists);
+            }
+            final LineData line = new LineData(allDatas);
+            mFourthChart.setData(line);
+        }
+
+        List<LineDataSet> data2 = mForthDataSetsForPeripheral.get(peripheralIdentifier);
+        if (data2 != null && index < data2.size()) {
+            mLastDataSetModified = data2.get(index);
+        }
+    }
+
     private void notifyDataSetChanged() {
         if (mChart.getData() != null) {
             mChart.getData().notifyDataChanged();
@@ -587,6 +736,81 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         }
     }
 
+    private void notifySecondDataSetChanged() {
+        if (mSecondChart.getData() != null) {
+            mSecondChart.getData().notifyDataChanged();
+        }
+        mSecondChart.notifyDataSetChanged();
+        mSecondChart.invalidate();
+        mSecondChart.setVisibleXRangeMaximum(mVisibleInterval);
+        mSecondChart.setVisibleXRangeMinimum(mVisibleInterval);
+
+        if (mLastDataSetModified != null && mIsAutoScrollEnabled) {
+            final List<Entry> values = mLastDataSetModified.getValues();
+
+            float x = 0;
+            if (values != null && values.size() > 0) {
+                Entry value = values.get(values.size() - 1);
+                if (value != null) {
+                    x = value.getX();
+                }
+            }
+
+            final float xOffset = x - (mVisibleInterval - 1);
+            mSecondChart.moveViewToX(xOffset);
+        }
+    }
+
+    private void notifyThirdDataSetChanged() {
+        if (mThirdChart.getData() != null) {
+            mThirdChart.getData().notifyDataChanged();
+        }
+        mThirdChart.notifyDataSetChanged();
+        mThirdChart.invalidate();
+        mThirdChart.setVisibleXRangeMaximum(mVisibleInterval);
+        mThirdChart.setVisibleXRangeMinimum(mVisibleInterval);
+
+        if (mLastDataSetModified != null && mIsAutoScrollEnabled) {
+            final List<Entry> values = mLastDataSetModified.getValues();
+
+            float x = 0;
+            if (values != null && values.size() > 0) {
+                Entry value = values.get(values.size() - 1);
+                if (value != null) {
+                    x = value.getX();
+                }
+            }
+
+            final float xOffset = x - (mVisibleInterval - 1);
+            mThirdChart.moveViewToX(xOffset);
+        }
+    }
+
+    private void notifyForthDataSetChanged() {
+        if (mFourthChart.getData() != null) {
+            mFourthChart.getData().notifyDataChanged();
+        }
+        mFourthChart.notifyDataSetChanged();
+        mFourthChart.invalidate();
+        mFourthChart.setVisibleXRangeMaximum(mVisibleInterval);
+        mFourthChart.setVisibleXRangeMinimum(mVisibleInterval);
+
+        if (mLastDataSetModified != null && mIsAutoScrollEnabled) {
+            final List<Entry> values = mLastDataSetModified.getValues();
+
+            float x = 0;
+            if (values != null && values.size() > 0) {
+                Entry value = values.get(values.size() - 1);
+                if (value != null) {
+                    x = value.getX();
+                }
+            }
+
+            final float xOffset = x - (mVisibleInterval - 1);
+            mFourthChart.moveViewToX(xOffset);
+        }
+    }
+
     private void appendDataset(@NonNull String peripheralIdentifier, @NonNull Entry entry, int index) {
         LineDataSet dataSet = new LineDataSet(null, "Values[" + peripheralIdentifier + ":" + index + "]");
         dataSet.addEntry(entry);
@@ -596,7 +820,8 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         dataSet.setDrawValues(false);
         dataSet.setLineWidth(2);
         final int[] colors = UartStyle.defaultColors();
-        final int color = colors[index % colors.length];
+        //final int color = colors[index % colors.length];
+        final int color = colors[0];
         dataSet.setColor(color);
         final DashPathEffect dashPatternEffect = mLineDashPathEffectForPeripheral.get(peripheralIdentifier);
         dataSet.setFormLineDashEffect(dashPatternEffect);
@@ -610,6 +835,79 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             mDataSetsForPeripheral.put(peripheralIdentifier, dataSets);
         }
     }
+
+    private void appendSecondDataset(@NonNull String peripheralIdentifier, @NonNull Entry entry, int index) {
+        LineDataSet data = new LineDataSet(null, "Values[" + peripheralIdentifier + ":" + index + "]");
+        data.addEntry(entry);
+        data.addEntry(entry);
+
+        data.setDrawCircles(false);
+        data.setDrawValues(false);
+        data.setLineWidth(2);
+        final int[] colors = UartStyle.defaultColors();
+        final int color = colors[1];
+        data.setColor(color);
+        final DashPathEffect dashPatternEffect = mLineDashPathEffectForPeripheral.get(peripheralIdentifier);
+        data.setFormLineDashEffect(dashPatternEffect);
+
+        List<LineDataSet> previousDataSets = mSecondDataSetsForPeripheral.get(peripheralIdentifier);
+        if (previousDataSets != null) {
+            previousDataSets.add(data);
+        } else {
+            List<LineDataSet> datas = new ArrayList<>();
+            datas.add(data);
+            mSecondDataSetsForPeripheral.put(peripheralIdentifier, datas);
+        }
+    }
+
+    private void appendThirdDataset(@NonNull String peripheralIdentifier, @NonNull Entry entry, int index) {
+        LineDataSet data = new LineDataSet(null, "Values[" + peripheralIdentifier + ":" + index + "]");
+        data.addEntry(entry);
+        data.addEntry(entry);
+
+        data.setDrawCircles(false);
+        data.setDrawValues(false);
+        data.setLineWidth(2);
+        final int[] colors = UartStyle.defaultColors();
+        final int color = colors[2];
+        data.setColor(color);
+        final DashPathEffect dashPatternEffect = mLineDashPathEffectForPeripheral.get(peripheralIdentifier);
+        data.setFormLineDashEffect(dashPatternEffect);
+
+        List<LineDataSet> previousDataSets = mThirdDataSetsForPeripheral.get(peripheralIdentifier);
+        if (previousDataSets != null) {
+            previousDataSets.add(data);
+        } else {
+            List<LineDataSet> datas = new ArrayList<>();
+            datas.add(data);
+            mThirdDataSetsForPeripheral.put(peripheralIdentifier, datas);
+        }
+    }
+
+    private void appendForthDataset(@NonNull String peripheralIdentifier, @NonNull Entry entry, int index) {
+        LineDataSet data = new LineDataSet(null, "Values[" + peripheralIdentifier + ":" + index + "]");
+        data.addEntry(entry);
+        data.addEntry(entry);
+
+        data.setDrawCircles(false);
+        data.setDrawValues(false);
+        data.setLineWidth(2);
+        final int[] colors = UartStyle.defaultColors();
+        final int color = colors[6];
+        data.setColor(color);
+        final DashPathEffect dashPatternEffect = mLineDashPathEffectForPeripheral.get(peripheralIdentifier);
+        data.setFormLineDashEffect(dashPatternEffect);
+
+        List<LineDataSet> previousDataSets = mForthDataSetsForPeripheral.get(peripheralIdentifier);
+        if (previousDataSets != null) {
+            previousDataSets.add(data);
+        } else {
+            List<LineDataSet> datas = new ArrayList<>();
+            datas.add(data);
+            mForthDataSetsForPeripheral.put(peripheralIdentifier, datas);
+        }
+    }
+
 
     // endregion
 
@@ -673,9 +971,9 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             String dataString = BleUtils.bytesToHex2(subData);
 
             String[] strings = dataString.split(" ");
-            String[] dataStrings= new String[strings.length/2];
+            String[] dataStrings= new String[48];
             int l= 0;
-            for(int j=0;j<strings.length/2;j++){
+            for(int j=0;j<48;j++){
                 if(strings[l+1].equals("FF")){
                     dataStrings[j] = String.valueOf(subData[l]);
                 }
@@ -685,29 +983,41 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                 }
                 l+=2;
             }
-            /*
+
+
+            List<Double> numbers1 = new ArrayList<>();
+
+            List<Double> numbers2 = new ArrayList<>();
+
+            List<Double> numbers3 = new ArrayList<>();
+
+
             String xAxis = strings[98] + strings[97];
             int xAxisInt = Integer.parseInt(xAxis, 16);
             if(xAxisInt > 32767){
                 xAxisInt = xAxisInt - 65536;
             }
+            numbers1.add(Double.valueOf(xAxisInt));
 
             String yAxis = strings[100] + strings[99];
             int yAxisInt = Integer.parseInt(yAxis, 16);
             if(yAxisInt > 32767){
                 yAxisInt = yAxisInt - 65536;
             }
+            numbers2.add(Double.valueOf(yAxisInt));
 
             String zAxis = strings[102] + strings[101];
             int zAxisInt = Integer.parseInt(zAxis, 16);
             if(zAxisInt > 32767){
                 zAxisInt = zAxisInt - 65536;
             }
+            numbers3.add(Double.valueOf(zAxisInt));
 
-            System.out.println("XAxis: " + xAxisInt + "  YAxis: " + yAxisInt + "  ZAxis: " + zAxisInt);
-            double vectorValue = Math.sqrt(xAxisInt * xAxisInt + yAxisInt * yAxisInt + zAxisInt * zAxisInt);
-            System.out.println("Vector Value: " + vectorValue);
-            vectorValueList.add(vectorValue);
+            //System.out.println("XAxis: " + xAxisInt + "  YAxis: " + yAxisInt + "  ZAxis: " + zAxisInt);
+            double vectorValue = Math.sqrt(yAxisInt * yAxisInt + zAxisInt * zAxisInt);
+            //System.out.println("Vector Value: " + vectorValue);
+
+            vectorValueList.add(Double.valueOf(zAxisInt));
             vectorValueCounter++;
             if(vectorValueCounter == 200){
                 respirationPeaks = findPeaksforVector(vectorValueList);
@@ -715,15 +1025,92 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                 vectorValueCounter = 0;
                 respirationPeakCounter++;
                 respirationRate += respirationPeaks;
-                //System.out.println("Respiration Peaks " + respirationPeaks + " " + respirationPeakCounter);
+                System.out.println("Respiration Peaks " + respirationPeaks + " " + respirationPeakCounter);
 
                 if (respirationPeakCounter == 6){
-                    //System.out.println("Respiration Rate " + respirationRate);
+                    System.out.println("Respiration Rate " + respirationRate);
                     respirationPeakCounter = 0;
                     respirationRate = 0;
                 }
             }
-            */
+
+            for (int num=0;num<numbers1.size();num++) {
+                String line1 = Double.toString(numbers1.get(num));
+                final String[] valuesStrings1 = line1.split("[,; \t]");
+
+                int j = 0;
+                for (int str=0;str< valuesStrings1.length;str++) {
+                    boolean isValid1 = true;
+                    float value1 = 0;
+
+                    if (valuesStrings1[str] != null) {
+                        try {
+                            value1 = Float.parseFloat(valuesStrings1[str]);
+                        } catch (NumberFormatException ignored) {
+                            isValid1 = false;
+                        }
+                    } else {
+                        isValid1 = false;
+                    }
+
+                    if (isValid1 && peripheralIdentifier != null) {
+                        addSecondEntry(peripheralIdentifier, j, value1, currentTimestamp);
+                        j++;
+                    }
+                }
+            }
+
+            for (int num=0;num<numbers2.size();num++) {
+                String line2 = Double.toString(numbers2.get(num));
+                final String[] valuesStrings2 = line2.split("[,; \t]");
+
+                int j = 0;
+                for (int str=0;str< valuesStrings2.length;str++) {
+                    boolean isValid2 = true;
+                    float value2 = 0;
+
+                    if (valuesStrings2[str] != null) {
+                        try {
+                            value2 = Float.parseFloat(valuesStrings2[str]);
+                        } catch (NumberFormatException ignored) {
+                            isValid2 = false;
+                        }
+                    } else {
+                        isValid2 = false;
+                    }
+
+                    if (isValid2 && peripheralIdentifier != null) {
+                        addThirdEntry(peripheralIdentifier, j, value2, currentTimestamp);
+                        j++;
+                    }
+                }
+            }
+
+            for (int num=0;num<numbers3.size();num++) {
+                String line3 = Double.toString(numbers3.get(num));
+                final String[] valuesStrings3 = line3.split("[,; \t]");
+
+                int j = 0;
+                for (int str=0;str< valuesStrings3.length;str++) {
+                    boolean isValid3 = true;
+                    float value3 = 0;
+
+                    if (valuesStrings3[str] != null) {
+                        try {
+                            value3 = Float.parseFloat(valuesStrings3[str]);
+                        } catch (NumberFormatException ignored) {
+                            isValid3 = false;
+                        }
+                    } else {
+                        isValid3 = false;
+                    }
+
+                    if (isValid3 && peripheralIdentifier != null) {
+                        addForthEntry(peripheralIdentifier, j, value3, currentTimestamp);
+                        j++;
+                    }
+                }
+            }
 
             // Peak Detection from java
             DecimalFormat df = new DecimalFormat("#0.000");
@@ -744,6 +1131,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                     count++;
                 }
             }
+
             List<Double> filteredDataList = resultsMap.get("filteredData");
 
             /* Heart Rate Calculation */
@@ -789,10 +1177,44 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 //                            writerHeartRate.writeAll(Collections.singleton(new String[]{"Real Time HR", "Avg. HR"}));
 //                        }
 
+//                        try {
+//                            AnnNoisyNotNoisy model = AnnNoisyNotNoisy.newInstance(getContext());
+//
+//                            // Creates inputs for reference.
+//                            TensorBuffer inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 19}, DataType.FLOAT32);
+//
+//                            // Pack ECG data into a ByteBuffer
+//                            ByteBuffer byteBuffer = ByteBuffer.allocate(19 * 4);
+//                            byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+//                            for (Double sample : filteredDataList) {
+//                                short sampleShort = (short) (sample * Short.MAX_VALUE);
+//                                if (byteBuffer.remaining() == 0)
+//                                    break;
+//                                byteBuffer.putShort(sampleShort);
+//                            }
+//
+//                            inputFeature0.loadBuffer(byteBuffer);
+//
+//                            // Runs model inference and gets result.
+//                            AnnNoisyNotNoisy.Outputs outputs = model.process(inputFeature0);
+//                            TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
+//
+//                            // Get predicted class
+//                            float[] scores = outputFeature0.getFloatArray();
+//                            System.out.println("New\n");
+//                            for (float score : scores) {
+//                                System.out.println("Scores " + score);
+//                            }
+//                            model.close();
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                        }
+
                         if (counter % 10 == 0) {
                             List<Integer> rPeaks = RPeakDetector.detectRPeaks(timerData);
-                            double heartRate = calculateHeartRate(rPeaks, 10);
-                            if (heartRate > 60 && heartRate < 140) {
+                            double heartRate = calculateHeartRate(rPeaks, 5);
+                            //System.out.println("HEART Rate " + heartRate);
+                            if (heartRate > 60 && heartRate < 140 ) {
                                 heartRateEditText.setTextIsSelectable(true);
                                 heartRateEditText.setMovementMethod(LinkMovementMethod.getInstance());
                                 heartRateEditText.setText(String.valueOf((int) heartRate));
@@ -818,13 +1240,39 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                             EcgDataWhileAbnormal.addAll(timerData);
 
                             try {
-                                AnnClassifier model = AnnClassifier.newInstance(context);
+                                AnnNoisyNotNoisy model = AnnNoisyNotNoisy.newInstance(context);
 
                                 // Creates inputs for reference.
-                                TensorBuffer inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 159}, DataType.FLOAT32);
+                                TensorBuffer inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 19}, DataType.FLOAT32);
+
+                                // Find the minimum and maximum values of the ECG data
+                                double ecgMin = Double.MAX_VALUE;
+                                double ecgMax = Double.MIN_VALUE;
+                                for (Double sample : timerData) {
+                                    if (sample < ecgMin) {
+                                        ecgMin = sample;
+                                    }
+                                    if (sample > ecgMax) {
+                                        ecgMax = sample;
+                                    }
+                                }
+
+                                System.out.println("ECGMAX " + ecgMax + " " + ecgMin);
+
+//                                // Pack ECG data into a ByteBuffer
+//                                ByteBuffer byteBuffer = ByteBuffer.allocate(19 * 4);
+//                                byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+//                                for (Double sample : timerData) {
+//                                    int samplefloat = (int) ((sample - ecgMin) / (ecgMax - ecgMin));
+//                                    if (byteBuffer.remaining() == 0)
+//                                        break;
+//                                    byteBuffer.putInt(samplefloat);
+//                                }
+//
+//                                inputFeature0.loadBuffer(byteBuffer);
 
                                 // Pack ECG data into a ByteBuffer
-                                ByteBuffer byteBuffer = ByteBuffer.allocate(159 * 4);
+                                ByteBuffer byteBuffer = ByteBuffer.allocate(19 * 4);
                                 byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
                                 for (Double sample : timerData) {
                                     short sampleShort = (short) (sample * Short.MAX_VALUE);
@@ -836,12 +1284,22 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                 inputFeature0.loadBuffer(byteBuffer);
 
                                 // Runs model inference and gets result.
-                                AnnClassifier.Outputs outputs = model.process(inputFeature0);
+                                AnnNoisyNotNoisy.Outputs outputs = model.process(inputFeature0);
                                 TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
 
                                 // Get predicted class
                                 float[] scores = outputFeature0.getFloatArray();
+                                System.out.println("New\n");
+                                for (float score : scores) {
+                                    System.out.println("Scores " + score);
+                                }
                                 predictClass[algoCounter] = getMaxIndexforANN(scores);
+                                if(Math.abs(ecgMax-ecgMin) < 30) {
+                                    predictClass[algoCounter] = 0;
+                                }
+                                else {
+                                    predictClass[algoCounter] = 1;
+                                }
 
                                 // Releases model resources if no longer used.
                                 model.close();
@@ -914,25 +1372,24 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                             int pClass = (int) predictClass[algoC];
                                             classes[pClass]++;
                                         }
-                                        //predictforArrhythmia = getMaxIndexforInt(classes);
-                                        if(classes[0] > 9) {
-                                            predictforArrhythmia = 0;
-                                        }
-                                        else if (classes[0] > 8){
-                                            predictforArrhythmia = 3;
-                                        }
-                                        else{
-                                            predictforArrhythmia = 1;
-                                        }
+                                        predictforArrhythmia = getMaxIndexforInt(classes);
+//                                        if(classes[0] > 9) {
+//                                            predictforArrhythmia = 0;
+//                                        }
+//                                        else if (classes[0] > 8){
+//                                            predictforArrhythmia = 3;
+//                                        }
+//                                        else{
+//                                            predictforArrhythmia = 1;
+//                                        }
                                         Date currentTime = new Date();
                                         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
                                         long currentTimeMillis = System.currentTimeMillis();
                                         formattedTime = sdf.format(currentTime) + String.format(":%02d", currentTimeMillis % 1000 / 10);
-                                        System.out.println(formattedTime);
 
-                                        for (int cls = 0; cls < classes.length; cls++) {
-                                            System.out.println("Classes " + cls + " " + classes[cls] + " " + predictforArrhythmia + " " + getMaxIndexforInt(classes));
-                                        }
+//                                        for (int cls = 0; cls < classes.length; cls++) {
+//                                            System.out.println("Classes " + cls + " " + classes[cls] + " " + predictforArrhythmia + " " + getMaxIndexforInt(classes));
+//                                        }
                                     }
 
                                     // Releases model resources if no longer used.
@@ -941,7 +1398,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                     e.printStackTrace();
                                 }
 
-                                System.out.println("PredictClass " + algoCounter + " " + predictforArrhythmia);
+                                //System.out.println("PredictClass " + algoCounter + " " + predictforArrhythmia);
 
                                 if (predictforArrhythmia == 2 && algoCounter == 9) {
                                     String top = "Arrhythmic " + formattedTime + " SR: 1kHZ";
@@ -1011,6 +1468,9 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 
                             writerECG.writeAll(Collections.singleton(new String[]{Double.toString(filteredData)})); // data is adding to csv
                             mMainHandler.post(this::notifyDataSetChanged);
+                            mMainHandler.post(this::notifySecondDataSetChanged);
+                            mMainHandler.post(this::notifyThirdDataSetChanged);
+                            mMainHandler.post(this::notifyForthDataSetChanged);
                         }
                         writerECG.close();
                         writerHeartRate.close();
@@ -1048,9 +1508,9 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     }
 
     public static int getMaxIndexforANN(float[] array) {
-        int maxIndex = 0;
+        int maxIndex = 1;
         for(int i=0;i<array.length;i++){
-            if(array[i] > maxIndex)
+            if(array[i] >= maxIndex)
                 return 0;
         }
         return 1;
@@ -1208,7 +1668,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 
     public static int findPeaksforVector(List<Double> signal) {
         int peakCount = 0;
-        List<Double> smoothedSignal = applyMovingAverage(signal, 3); // Adjust the window size as needed
+        List<Double> smoothedSignal = applyMovingAverage(signal, 10); // Adjust the window size as needed
 
         for (int i = 1; i < smoothedSignal.size() - 1; i++) {
             double previousValue = smoothedSignal.get(i - 1);

@@ -15,6 +15,26 @@
         android:layout_weight="1"
         android:background="@color/white" />
 
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/secondchart"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/white" />
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/thirdchart"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/white" />
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/fourthchart"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/white" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content" >
