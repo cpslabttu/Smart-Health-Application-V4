@@ -42,6 +42,7 @@ import com.example.cps_lab.ble.central.BleScanner;
 import com.example.cps_lab.ble.central.UartDataManager;
 import com.example.cps_lab.ml.AnnClassifier;
 import com.example.cps_lab.ml.AnnMulticlass;
+import com.example.cps_lab.ml.AnnNn;
 import com.example.cps_lab.ml.AnnNoisyNormal;
 import com.example.cps_lab.ml.AnnNoisyNotNoisy;
 import com.example.cps_lab.ml.ArrhythmiaOnEcgClassification;
@@ -1177,39 +1178,6 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 //                            writerHeartRate.writeAll(Collections.singleton(new String[]{"Real Time HR", "Avg. HR"}));
 //                        }
 
-//                        try {
-//                            AnnNoisyNotNoisy model = AnnNoisyNotNoisy.newInstance(getContext());
-//
-//                            // Creates inputs for reference.
-//                            TensorBuffer inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 19}, DataType.FLOAT32);
-//
-//                            // Pack ECG data into a ByteBuffer
-//                            ByteBuffer byteBuffer = ByteBuffer.allocate(19 * 4);
-//                            byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-//                            for (Double sample : filteredDataList) {
-//                                short sampleShort = (short) (sample * Short.MAX_VALUE);
-//                                if (byteBuffer.remaining() == 0)
-//                                    break;
-//                                byteBuffer.putShort(sampleShort);
-//                            }
-//
-//                            inputFeature0.loadBuffer(byteBuffer);
-//
-//                            // Runs model inference and gets result.
-//                            AnnNoisyNotNoisy.Outputs outputs = model.process(inputFeature0);
-//                            TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
-//
-//                            // Get predicted class
-//                            float[] scores = outputFeature0.getFloatArray();
-//                            System.out.println("New\n");
-//                            for (float score : scores) {
-//                                System.out.println("Scores " + score);
-//                            }
-//                            model.close();
-//                        } catch (IOException e) {
-//                            e.printStackTrace();
-//                        }
-
                         if (counter % 10 == 0) {
                             List<Integer> rPeaks = RPeakDetector.detectRPeaks(timerData);
                             double heartRate = calculateHeartRate(rPeaks, 5);
@@ -1240,10 +1208,10 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                             EcgDataWhileAbnormal.addAll(timerData);
 
                             try {
-                                AnnNoisyNotNoisy model = AnnNoisyNotNoisy.newInstance(context);
+                                AnnNn model = AnnNn.newInstance(context);
 
                                 // Creates inputs for reference.
-                                TensorBuffer inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 19}, DataType.FLOAT32);
+                                TensorBuffer inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 160}, DataType.FLOAT32);
 
                                 // Find the minimum and maximum values of the ECG data
                                 double ecgMin = Double.MAX_VALUE;
@@ -1257,34 +1225,42 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                     }
                                 }
 
-                                System.out.println("ECGMAX " + ecgMax + " " + ecgMin);
-
-//                                // Pack ECG data into a ByteBuffer
-//                                ByteBuffer byteBuffer = ByteBuffer.allocate(19 * 4);
-//                                byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-//                                for (Double sample : timerData) {
-//                                    int samplefloat = (int) ((sample - ecgMin) / (ecgMax - ecgMin));
-//                                    if (byteBuffer.remaining() == 0)
-//                                        break;
-//                                    byteBuffer.putInt(samplefloat);
-//                                }
-//
-//                                inputFeature0.loadBuffer(byteBuffer);
+                                //System.out.println("ECGMAX " + ecgMax + " " + ecgMin);
+                                double targetMin = -14.44;
+                                double targetMax = 3.805;
 
                                 // Pack ECG data into a ByteBuffer
-                                ByteBuffer byteBuffer = ByteBuffer.allocate(19 * 4);
+                                ByteBuffer byteBuffer = ByteBuffer.allocate(160 * 4);
                                 byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
                                 for (Double sample : timerData) {
-                                    short sampleShort = (short) (sample * Short.MAX_VALUE);
+                                    // Normalize the sample to the target range
+                                    double normalized_sample = (sample - ecgMin) / (ecgMax - ecgMin) * (targetMax - targetMin) + targetMin;
+
+                                    // Convert the normalized sample to a short
+                                    short sampleShort = (short) (normalized_sample * Short.MAX_VALUE);
+
                                     if (byteBuffer.remaining() == 0)
                                         break;
+
                                     byteBuffer.putShort(sampleShort);
                                 }
 
                                 inputFeature0.loadBuffer(byteBuffer);
 
+                                // Pack ECG data into a ByteBuffer
+//                                ByteBuffer byteBuffer = ByteBuffer.allocate(160 * 4);
+//                                byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+//                                for (Double sample : timerData) {
+//                                    short sampleShort = (short) (sample * Short.MAX_VALUE);
+//                                    if (byteBuffer.remaining() == 0)
+//                                        break;
+//                                    byteBuffer.putShort(sampleShort);
+//                                }
+//
+//                                inputFeature0.loadBuffer(byteBuffer);
+
                                 // Runs model inference and gets result.
-                                AnnNoisyNotNoisy.Outputs outputs = model.process(inputFeature0);
+                                AnnNn.Outputs outputs = model.process(inputFeature0);
                                 TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
 
                                 // Get predicted class
@@ -1294,12 +1270,6 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                     System.out.println("Scores " + score);
                                 }
                                 predictClass[algoCounter] = getMaxIndexforANN(scores);
-                                if(Math.abs(ecgMax-ecgMin) < 30) {
-                                    predictClass[algoCounter] = 0;
-                                }
-                                else {
-                                    predictClass[algoCounter] = 1;
-                                }
 
                                 // Releases model resources if no longer used.
                                 model.close();
@@ -1508,7 +1478,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     }
 
     public static int getMaxIndexforANN(float[] array) {
-        int maxIndex = 1;
+        int maxIndex = 0;
         for(int i=0;i<array.length;i++){
             if(array[i] >= maxIndex)
                 return 0;
