@@ -42,10 +42,7 @@ import com.example.cps_lab.ble.central.BleScanner;
 import com.example.cps_lab.ble.central.UartDataManager;
 import com.example.cps_lab.ml.AnnClassifier;
 import com.example.cps_lab.ml.AnnMulticlass;
-import com.example.cps_lab.ml.AnnNn;
-import com.example.cps_lab.ml.AnnNoisyNormal;
-import com.example.cps_lab.ml.AnnNoisyNotNoisy;
-import com.example.cps_lab.ml.ArrhythmiaOnEcgClassification;
+import com.example.cps_lab.ml.AnnNew;
 import com.example.cps_lab.ml.CnnMulticlass;
 import com.example.cps_lab.ml.RnnLstmMulticlass;
 import com.example.cps_lab.style.UartStyle;
@@ -1208,7 +1205,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                             EcgDataWhileAbnormal.addAll(timerData);
 
                             try {
-                                AnnNn model = AnnNn.newInstance(context);
+                                AnnNew model = AnnNew.newInstance(context);
 
                                 // Creates inputs for reference.
                                 TensorBuffer inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 160}, DataType.FLOAT32);
@@ -1226,8 +1223,8 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                 }
 
                                 //System.out.println("ECGMAX " + ecgMax + " " + ecgMin);
-                                double targetMin = -14.44;
-                                double targetMax = 3.805;
+                                double targetMin = -25.985; //-14.44;
+                                double targetMax = 30.575; //3.805;
 
                                 // Pack ECG data into a ByteBuffer
                                 ByteBuffer byteBuffer = ByteBuffer.allocate(160 * 4);
@@ -1260,7 +1257,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 //                                inputFeature0.loadBuffer(byteBuffer);
 
                                 // Runs model inference and gets result.
-                                AnnNn.Outputs outputs = model.process(inputFeature0);
+                                AnnNew.Outputs outputs = model.process(inputFeature0);
                                 TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
 
                                 // Get predicted class
