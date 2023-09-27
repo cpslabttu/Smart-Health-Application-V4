@@ -40,11 +40,8 @@ import com.example.cps_lab.ble.central.BlePeripheral;
 import com.example.cps_lab.ble.central.BlePeripheralUart;
 import com.example.cps_lab.ble.central.BleScanner;
 import com.example.cps_lab.ble.central.UartDataManager;
-import com.example.cps_lab.ml.AnnClassifier;
-import com.example.cps_lab.ml.AnnMulticlass;
 import com.example.cps_lab.ml.AnnNew;
 import com.example.cps_lab.ml.CnnMulticlass;
-import com.example.cps_lab.ml.RnnLstmMulticlass;
 import com.example.cps_lab.style.UartStyle;
 import com.example.cps_lab.utils.DialogUtils;
 import com.example.cps_lab.utils.ZipUtils;
@@ -56,8 +53,6 @@ import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.opencsv.CSVWriter;
 
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
-import org.checkerframework.checker.units.qual.A;
-import org.checkerframework.checker.units.qual.C;
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
 
@@ -934,6 +929,22 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     private String formattedTime = null;
 
     private ArrayList<Double> vectorValueList = new ArrayList<>();
+    List<Double> numbers1 = new ArrayList<>();
+    List<Double> numbers2 = new ArrayList<>();
+    List<Double> numbers3 = new ArrayList<>();
+    List<Double> normalizedX = new ArrayList<>();
+    List<Double> normalizedY = new ArrayList<>();
+    List<Double> normalizedZ = new ArrayList<>();
+    List<Double> normalizedXY = new ArrayList<>();
+    List<Double> normalizedYZ = new ArrayList<>();
+    List<Double> normalizedZX = new ArrayList<>();
+    double averageX = 0.0;
+    double averageY = 0.0;
+    double averageZ = 0.0;
+    double averageXY = 0.0;
+    double averageYZ = 0.0;
+    double averageZX = 0.0;
+    double maxAverage = 0.0;
     private int vectorValueCounter = 0;
     private int respirationPeaks = 0;
     private int respirationPeakCounter = 0;
@@ -983,13 +994,6 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             }
 
 
-            List<Double> numbers1 = new ArrayList<>();
-
-            List<Double> numbers2 = new ArrayList<>();
-
-            List<Double> numbers3 = new ArrayList<>();
-
-
             String xAxis = strings[98] + strings[97];
             int xAxisInt = Integer.parseInt(xAxis, 16);
             if(xAxisInt > 32767){
@@ -1011,27 +1015,67 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             }
             numbers3.add(Double.valueOf(zAxisInt));
 
+            double vectorXY = Math.sqrt(xAxisInt * xAxisInt + yAxisInt * yAxisInt);
+            double vectorYZ = Math.sqrt(yAxisInt * yAxisInt + zAxisInt * zAxisInt);
+            double vectorZX = Math.sqrt(zAxisInt * zAxisInt + xAxisInt * xAxisInt);
+
             //System.out.println("XAxis: " + xAxisInt + "  YAxis: " + yAxisInt + "  ZAxis: " + zAxisInt);
-            double vectorValue = Math.sqrt(yAxisInt * yAxisInt + zAxisInt * zAxisInt);
+            //double vectorValue = Math.sqrt(yAxisInt * yAxisInt + zAxisInt * zAxisInt);
             //System.out.println("Vector Value: " + vectorValue);
 
-            vectorValueList.add(Double.valueOf(zAxisInt));
+            //vectorValueList.add(Double.valueOf(zAxisInt));
             vectorValueCounter++;
             if(vectorValueCounter == 200){
+                normalizedX = normalize(numbers1);
+                normalizedY = normalize(numbers2);
+                normalizedZ = normalize(numbers3);
+                normalizedXY = vectorValue(normalizedX, normalizedY);
+                normalizedYZ = vectorValue(normalizedY, normalizedZ);
+                normalizedZX = vectorValue(normalizedZ, normalizedX);
+                averageX = standardDeviationAndAverage(normalizedX);
+                averageY = standardDeviationAndAverage(normalizedY);
+                averageZ = standardDeviationAndAverage(normalizedZ);
+                averageXY = standardDeviationAndAverage(normalizedXY);
+                averageYZ = standardDeviationAndAverage(normalizedYZ);
+                averageZX = standardDeviationAndAverage(normalizedZX);
+                maxAverage = Math.max(averageX, Math.max(averageY, Math.max(averageZ, Math.max(averageXY, Math.max(averageYZ, averageZX)))));
+                System.out.println("X - " + averageX + " Y - " + averageY + " Z - " + averageZ + " XY - " + averageXY + " YZ - " + averageYZ + " ZX - " + averageZX);
+                System.out.println("MaxAverage: " + maxAverage);
+
                 respirationPeaks = findPeaksforVector(vectorValueList);
                 vectorValueList = new ArrayList<>();
                 vectorValueCounter = 0;
                 respirationPeakCounter++;
                 respirationRate += respirationPeaks;
-                System.out.println("Respiration Peaks " + respirationPeaks + " " + respirationPeakCounter);
+                //System.out.println("Respiration Peaks " + respirationPeaks + " " + respirationPeakCounter);
 
                 if (respirationPeakCounter == 6){
-                    System.out.println("Respiration Rate " + respirationRate);
+                    //System.out.println("Respiration Rate " + respirationRate);
                     respirationPeakCounter = 0;
                     respirationRate = 0;
                 }
             }
 
+            if(areEqual(maxAverage, averageX, 0.000001)){
+                plot(Double.valueOf(xAxisInt), peripheralIdentifier, currentTimestamp);
+            }
+            else if(areEqual(maxAverage, averageY, 0.000001)){
+                plot(Double.valueOf(yAxisInt), peripheralIdentifier, currentTimestamp);
+            }
+            else if(areEqual(maxAverage, averageZ, 0.000001)){
+                plot(Double.valueOf(zAxisInt), peripheralIdentifier, currentTimestamp);
+            }
+            else if(maxAverage == averageXY){
+                plot(vectorXY, peripheralIdentifier, currentTimestamp);
+            }
+            else if(maxAverage == averageYZ){
+                plot(vectorYZ, peripheralIdentifier, currentTimestamp);
+            }
+            else if(maxAverage == averageZX){
+                plot(vectorZX, peripheralIdentifier, currentTimestamp);
+            }
+
+            /*
             for (int num=0;num<numbers1.size();num++) {
                 String line1 = Double.toString(numbers1.get(num));
                 final String[] valuesStrings1 = line1.split("[,; \t]");
@@ -1109,6 +1153,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                     }
                 }
             }
+             */
 
             // Peak Detection from java
             DecimalFormat df = new DecimalFormat("#0.000");
@@ -1262,10 +1307,10 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 
                                 // Get predicted class
                                 float[] scores = outputFeature0.getFloatArray();
-                                System.out.println("New\n");
-                                for (float score : scores) {
-                                    System.out.println("Scores " + score);
-                                }
+//                                System.out.println("New\n");
+//                                for (float score : scores) {
+//                                    System.out.println("Scores " + score);
+//                                }
                                 predictClass[algoCounter] = getMaxIndexforANN(scores);
 
                                 // Releases model resources if no longer used.
@@ -1666,6 +1711,92 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         }
 
         return smoothedSignal;
+    }
+
+    public static List<Double> normalize(List<Double> valueList){
+        double newMin = 0.0;
+        double newMax = 100.0;
+
+        Double vMin = Double.MAX_VALUE;
+        Double vMax = Double.MIN_VALUE;
+        for(Double x : valueList){
+            if(x < vMin){
+                vMin = x;
+            }
+            if(x > vMax){
+                vMax = x;
+            }
+        }
+        List<Double> normalizeXValue = new ArrayList<>();
+        for (Double value : valueList) {
+            double normalizedValue = (value - vMin) / (vMax - vMin) * (newMax - newMin) + newMin;
+            normalizeXValue.add(normalizedValue);
+        }
+
+        return normalizeXValue;
+    }
+
+    public static List<Double> vectorValue(List<Double> value1, List<Double> value2){
+        List<Double> vectorValueList = new ArrayList<>();
+        for(int i=0;i<value1.size();i++){
+            if(i < value2.size()) {
+                double vectorValue = Math.sqrt(value1.get(i) * value1.get(i) + value2.get(i) * value2.get(i));
+                vectorValueList.add(vectorValue);
+            }
+        }
+
+        return vectorValueList;
+    }
+
+    public static double standardDeviationAndAverage(List<Double> valueList){
+        double sum = 0.0;
+        for (Double value : valueList) {
+            sum += value;
+        }
+        double mean =  sum / valueList.size();
+        List<Double> standardDevList = new ArrayList<>();
+
+        for(int i=0;i<valueList.size();i++){
+            double value = Math.sqrt(((valueList.get(i) - mean) * (valueList.get(i) - mean)) / valueList.size());
+            standardDevList.add(value);
+        }
+
+        sum = 0.0;
+        for(Double value : standardDevList){
+            sum += value;
+        }
+
+        return sum/standardDevList.size();
+    }
+
+    public void plot(double x, String peripheralIdentifier, float currentTimestamp){
+        String line1 = Double.toString(x);
+        final String[] valuesStrings1 = line1.split("[,; \t]");
+
+        int j = 0;
+        for (int str=0;str< valuesStrings1.length;str++) {
+            boolean isValid1 = true;
+            float value1 = 0;
+
+            if (valuesStrings1[str] != null) {
+                try {
+                    value1 = Float.parseFloat(valuesStrings1[str]);
+                } catch (NumberFormatException ignored) {
+                    isValid1 = false;
+                }
+            } else {
+                isValid1 = false;
+            }
+
+            if (isValid1 && peripheralIdentifier != null) {
+                addSecondEntry(peripheralIdentifier, j, value1, currentTimestamp);
+                j++;
+            }
+        }
+    }
+
+    public static boolean areEqual(double a, double b, double tolerance) {
+        return Math.abs(a - b) < tolerance;
     }
 
 
