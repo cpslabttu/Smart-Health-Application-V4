@@ -941,6 +941,14 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     List<Double> numbers4 = new ArrayList<>();
     List<Double> numbers5 = new ArrayList<>();
     List<Double> numbers6 = new ArrayList<>();
+
+    List<Double> numbers1end = new ArrayList<>();
+    List<Double> numbers2end = new ArrayList<>();
+    List<Double> numbers3end = new ArrayList<>();
+    List<Double> numbers4end = new ArrayList<>();
+    List<Double> numbers5end = new ArrayList<>();
+    List<Double> numbers6end = new ArrayList<>();
+
     List<Double> normalizedX = new ArrayList<>();
     List<Double> normalizedY = new ArrayList<>();
     List<Double> normalizedZ = new ArrayList<>();
@@ -1050,19 +1058,47 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             //vectorValueList.add(Double.valueOf(zAxisInt));
             vectorValueCounter++;
             if(vectorValueCounter == 200){
-                numbers1 = nonLinearAmplification(numbers1);
-                numbers2 = nonLinearAmplification(numbers2);
-                numbers3 = nonLinearAmplification(numbers3);
-                numbers4 = nonLinearAmplification(numbers4);
-                numbers5 = nonLinearAmplification(numbers5);
-                numbers6 = nonLinearAmplification(numbers6);
+                normalizedX = nonLinearAmplification(numbers1, numbers1end);
+                numbers1end = numbers1.subList(numbers1.size() - 10, numbers1.size());
 
-                normalizedX = normalize(numbers1);
-                normalizedY = normalize(numbers2);
-                normalizedZ = normalize(numbers3);
-                normalizedXY = vectorValue(normalizedX, normalizedY);
-                normalizedYZ = vectorValue(normalizedY, normalizedZ);
-                normalizedZX = vectorValue(normalizedZ, normalizedX);
+                normalizedY = nonLinearAmplification(numbers2, numbers2end);
+                numbers2end = numbers2.subList(numbers2.size() - 10, numbers2.size());
+
+                normalizedZ = nonLinearAmplification(numbers3, numbers3end);
+                numbers3end = numbers3.subList(numbers3.size() - 10, numbers3.size());
+
+                normalizedXY = nonLinearAmplification(numbers4, numbers4end);
+                numbers4end = numbers4.subList(numbers4.size() - 10, numbers4.size());
+
+                normalizedYZ = nonLinearAmplification(numbers5, numbers5end);
+                numbers5end = numbers5.subList(numbers5.size() - 10, numbers5.size());
+
+                normalizedZX = nonLinearAmplification(numbers6, numbers6end);
+                numbers6end = numbers6.subList(numbers6.size() - 10, numbers6.size());
+
+                if(folder.exists()){
+                    try {
+                        File fileInterPolate = new File(folder, "InterPolate.csv");
+                        if (!fileInterPolate.exists()) {
+                            fileInterPolate.createNewFile();
+                        }
+                        writerInterPolate = new CSVWriter(new FileWriter(fileInterPolate, true));
+                        for(int ii=0;ii<normalizedX.size();ii++) {
+                            writerInterPolate.writeAll(Collections.singleton(new String[]{String.valueOf(normalizedX.get(ii)), String.valueOf(normalizedY.get(ii)), String.valueOf(normalizedZ.get(ii)), String.valueOf(normalizedXY.get(ii)), String.valueOf(normalizedYZ.get(ii)), String.valueOf(normalizedZX.get(ii))}));
+                        }
+                        writerInterPolate.close();
+                    }
+                    catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                normalizedX = normalize(normalizedX);
+                normalizedY = normalize(normalizedY);
+                normalizedZ = normalize(normalizedZ);
+                normalizedXY = normalize(normalizedXY);
+                normalizedYZ = normalize(normalizedYZ);
+                normalizedZX = normalize(normalizedZX);
 
                 averageX = standardDeviationAndAverage(normalizedX);
                 averageY = standardDeviationAndAverage(normalizedY);
@@ -1076,40 +1112,24 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 
                 List<Double> interPolatedList = new ArrayList<>();
                 if(areEqual(maxAverage, averageX, 0.000001)){
-                    interPolatedList = splineInterpolationWithPeakDetection(numbers1);
+                    interPolatedList = splineInterpolationWithPeakDetection(normalizedX);
                 }
                 else if(areEqual(maxAverage, averageY, 0.000001)){
-                    interPolatedList = splineInterpolationWithPeakDetection(numbers2);
+                    interPolatedList = splineInterpolationWithPeakDetection(normalizedY);
                 }
                 else if(areEqual(maxAverage, averageZ, 0.000001)){
-                    interPolatedList = splineInterpolationWithPeakDetection(numbers3);
+                    interPolatedList = splineInterpolationWithPeakDetection(normalizedZ);
                 }
                 else if(areEqual(maxAverage, averageXY, 0.000001)){
-                    interPolatedList = splineInterpolationWithPeakDetection(numbers4);
+                    interPolatedList = splineInterpolationWithPeakDetection(normalizedXY);
                 }
                 else if(areEqual(maxAverage, averageYZ, 0.000001)){
-                    interPolatedList = splineInterpolationWithPeakDetection(numbers5);
+                    interPolatedList = splineInterpolationWithPeakDetection(normalizedYZ);
                 }
                 else if(areEqual(maxAverage, averageZX, 0.000001)){
-                    interPolatedList = splineInterpolationWithPeakDetection(numbers6);
+                    interPolatedList = splineInterpolationWithPeakDetection(normalizedZX);
                 }
 
-                if(folder.exists()){
-                    try {
-                        File fileInterPolate = new File(folder, "InterPolate.csv");
-                        if (!fileInterPolate.exists()) {
-                            fileInterPolate.createNewFile();
-                        }
-                        writerInterPolate = new CSVWriter(new FileWriter(fileInterPolate, true));
-                        for(int ii=0;ii<numbers3.size();ii++) {
-                            writerInterPolate.writeAll(Collections.singleton(new String[]{String.valueOf(numbers1.get(ii)), String.valueOf(numbers2.get(ii)), String.valueOf(numbers3.get(ii)), String.valueOf(numbers4.get(ii)), String.valueOf(numbers5.get(ii)), String.valueOf(numbers6.get(ii))}));
-                        }
-                        writerInterPolate.close();
-                    }
-                    catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
                 vectorValueCounter = 0;
                 respirationPeakCounter++;
                 respirationPeaks = interPolatedList.size();
@@ -1920,8 +1940,14 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         return Math.abs(a - b) < tolerance;
     }
 
-    public List<Double> nonLinearAmplification(List<Double> valueList){
-        valueList = applyFilter(valueList);
+    public List<Double> nonLinearAmplification(List<Double> valueList, List<Double> last10value){
+        last10value.addAll(valueList);
+        valueList = applyFilter(last10value);
+//        double[] lowPassCoefficients = {0.0085, 0.0155, 0.0475, 0.0938, 0.1340, 0.1561, 0.1561, 0.1340, 0.0938, 0.0475};
+//        double[] highPassCoefficients = {-0.0085, -0.0155, -0.0475, -0.0938, 0.8659, -0.0938, -0.0475, -0.0155, -0.0085};
+//        List<Double> lowPassFilteredSignal = applyFIRFilter(last10value, lowPassCoefficients);
+//        List<Double> highPassFilteredSignal = applyFIRFilter(lowPassFilteredSignal, highPassCoefficients);
+
         List<Double> amplifiedZ = new ArrayList<>();
         // Apply non-linear amplification (e.g., squaring) and store in amplifiedZ list
         for (Double value : valueList) {
@@ -1935,7 +1961,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     public static List<Double> applyFilter(List<Double> valueList) {
         List<Double> filteredList = new ArrayList<>();
         // Implement your filtering logic here, e.g., a simple moving average
-        for (int i = 0; i < valueList.size(); i++) {
+        for (int i = 5; i < valueList.size()-5; i++) {
             double sum = 0.0;
             int windowSize = 10; // You can adjust the window size as needed
             for (int j = i - windowSize / 2; j <= i + windowSize / 2; j++) {
@@ -1945,6 +1971,24 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             }
             filteredList.add(sum / windowSize);
         }
+        return filteredList;
+    }
+
+    public static List<Double> applyFIRFilter(List<Double> valueList, double[] coefficients) {
+        int numTaps = coefficients.length;
+        int numSamples = valueList.size();
+        List<Double> filteredList = new ArrayList<>();
+
+        for (int n = 10; n < numSamples; n++) {
+            double outputSample = 0.0;
+            for (int k = 0; k < numTaps; k++) {
+                if (n - k >= 0) {
+                    outputSample += coefficients[k] * valueList.get(n - k);
+                }
+            }
+            filteredList.add(outputSample);
+        }
+
         return filteredList;
     }
 
