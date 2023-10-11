@@ -1084,6 +1084,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                         }
                         writerInterPolate = new CSVWriter(new FileWriter(fileInterPolate, true));
                         for(int ii=0;ii<normalizedX.size();ii++) {
+                            //writerInterPolate.writeAll(Collections.singleton(new String[]{String.valueOf(interPolatedList.get(ii))}));
                             writerInterPolate.writeAll(Collections.singleton(new String[]{String.valueOf(normalizedX.get(ii)), String.valueOf(normalizedY.get(ii)), String.valueOf(normalizedZ.get(ii)), String.valueOf(normalizedXY.get(ii)), String.valueOf(normalizedYZ.get(ii)), String.valueOf(normalizedZX.get(ii))}));
                         }
                         writerInterPolate.close();
@@ -1802,7 +1803,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     public static List<Double> preprocessYData(List<Double> yData) {
         // Implement your data preprocessing logic for yData (e.g., remove outliers, smoothing)
         // For example, smoothing using a moving average:
-        int windowSize = 10; // Adjust the window size as needed
+        int windowSize = 15; // Adjust the window size as needed
 
         List<Double> preprocessedYData = new ArrayList<>();
         for (int i = 0; i < yData.size(); i++) {
