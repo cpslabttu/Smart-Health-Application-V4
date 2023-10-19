@@ -95,8 +95,9 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     private LineChart mSecondChart;
     private LineChart mThirdChart;
     private LineChart mFourthChart;
-    private EditText heartRateEditText;
-    private EditText avgHeartRateEditText;
+    private TextView heartRateEditText;
+    private TextView avgHeartRateEditText;
+    private TextView respirationRateText;
 
     private Button backDashboard;
     private Button exitButton;
@@ -164,9 +165,12 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         mChart = view.findViewById(R.id.chart);
         mSecondChart = view.findViewById(R.id.secondchart);
         mThirdChart = view.findViewById(R.id.thirdchart);
+        mThirdChart.setVisibility(View.GONE);
         mFourthChart = view.findViewById(R.id.fourthchart);
+        mFourthChart.setVisibility(View.GONE);
         heartRateEditText= view.findViewById(R.id.heartBeatRate);
         avgHeartRateEditText= view.findViewById(R.id.avgheartBeatRate);
+        respirationRateText = view.findViewById(R.id.respirationRate);
         WeakReference<PlotterFragment> weakThis = new WeakReference<>(this);
         SwitchCompat autoscrollSwitch = view.findViewById(R.id.autoscrollSwitch);
         autoscrollSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -965,7 +969,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     private int vectorValueCounter = 0;
     private int respirationPeaks = 0;
     private int respirationPeakCounter = 0;
-    private int respirationRate = 0;
+    private List<Double> respirationRate = new ArrayList<>();
 
     // Create separate lists to store data for each column
     List<List<String>> allArrhythmicData = new ArrayList<>();
@@ -1132,15 +1136,20 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                 }
 
                 vectorValueCounter = 0;
-                respirationPeakCounter++;
                 respirationPeaks = interPolatedList.size();
-                respirationRate += respirationPeaks;
+                respirationRate.add(Double.valueOf(respirationPeaks));
+                respirationPeakCounter++;
                 System.out.println("Respiration Peaks " + respirationPeaks + " " + respirationPeakCounter);
 
                 if (respirationPeakCounter == 6){
-                    System.out.println("Respiration Rate " + respirationRate);
-                    respirationPeakCounter = 0;
-                    respirationRate = 0;
+                    int respRate = 0;
+                    for(Double res : respirationRate){
+                        respRate += res;
+                    }
+                    System.out.println("Respiration Rate " + respRate);
+                    respirationRateText.setText(String.valueOf(respRate));
+                    respirationPeakCounter--;
+                    respirationRate = shiftLeft(respirationRate);
                 }
 
                 numbers1 = new ArrayList<>();
