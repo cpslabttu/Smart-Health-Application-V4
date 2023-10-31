@@ -22,11 +22,11 @@ public class RPeakDetector {
 
         // Differentiate the integrated ECG signal
         double[] differentiatedEcg = differentiateEcg(integratedEcg);
+//        for (int i=0;i<differentiatedEcg.length;i++){
+//            System.out.println("DIFF " + differentiatedEcg[i]);
+//        }
 
-        // Find the QRS complex in the integrated ECG signal
-//        ArrayList<Integer> qrsIndex = findQRS(integratedEcg, 0.5);
-
-        double[] thresholdedSignal = applyThreshold(differentiatedEcg);
+        double[] thresholdedSignal =  applyThreshold(differentiatedEcg);
         ArrayList<Integer> rPeaks = new ArrayList<>();
 
         for (int i = 0; i < thresholdedSignal.length; i++) {
@@ -34,13 +34,12 @@ public class RPeakDetector {
                 rPeaks.add(i);
             }
         }
-        //System.out.println("QRS complex at index: " + rPeaks);
         return rPeaks;
     }
 
     private static double[] filterEcg(double[] ecg) {
         // Cutoff frequency for the low pass filter (e.g. 15Hz)
-        double alpha = 0.75;
+        double alpha = 0.2;
         double[] filteredData = new double[ecg.length];
         filteredData[0] = ecg[0];
         for (int i = 1; i < ecg.length; i++) {
@@ -81,20 +80,10 @@ public class RPeakDetector {
         return integratedEcg;
     }
 
-    private static ArrayList<Integer> findQRS(double[] integratedEcg, double threshold) {
-        ArrayList<Integer> qrsList = new ArrayList<>();
-        for (int i = 0; i < integratedEcg.length; i++) {
-            if (integratedEcg[i] > 200000) {
-                //System.out.println("IntegratedEcg: " + integratedEcg[i]);
-                qrsList.add(i);
-            }
-        }
-        return qrsList;
-    }
-
     public static double[] applyThreshold(double[] differentiatedSignal) {
         double[] thresholdedSignal = new double[differentiatedSignal.length];
         double threshold = findThreshold(differentiatedSignal);
+        System.out.println("Threshold " + threshold);
         for (int i = 0; i < differentiatedSignal.length; i++) {
             if (differentiatedSignal[i] > threshold) {
                 thresholdedSignal[i] = 1;

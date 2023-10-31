@@ -1112,8 +1112,8 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                 averageYZ = standardDeviationAndAverage(normalizedYZ);
                 averageZX = standardDeviationAndAverage(normalizedZX);
                 maxAverage = Math.max(averageX, Math.max(averageY, Math.max(averageZ, Math.max(averageXY, Math.max(averageYZ, averageZX)))));
-                System.out.println("X - " + averageX + " Y - " + averageY + " Z - " + averageZ + " XY - " + averageXY + " YZ - " + averageYZ + " ZX - " + averageZX);
-                System.out.println("MaxAverage: " + maxAverage);
+                //System.out.println("X - " + averageX + " Y - " + averageY + " Z - " + averageZ + " XY - " + averageXY + " YZ - " + averageYZ + " ZX - " + averageZX);
+                //System.out.println("MaxAverage: " + maxAverage);
 
                 List<Double> interPolatedList = new ArrayList<>();
                 if(areEqual(maxAverage, averageX, 0.000001)){
@@ -1139,14 +1139,14 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                 respirationPeaks = interPolatedList.size();
                 respirationRate.add(Double.valueOf(respirationPeaks));
                 respirationPeakCounter++;
-                System.out.println("Respiration Peaks " + respirationPeaks + " " + respirationPeakCounter);
+                //System.out.println("Respiration Peaks " + respirationPeaks + " " + respirationPeakCounter);
 
                 if (respirationPeakCounter == 6){
                     int respRate = 0;
                     for(Double res : respirationRate){
                         respRate += res;
                     }
-                    System.out.println("Respiration Rate " + respRate);
+                    //System.out.println("Respiration Rate " + respRate);
                     respirationRateText.setText(String.valueOf(respRate));
                     respirationPeakCounter--;
                     respirationRate = shiftLeft(respirationRate);
@@ -1178,86 +1178,6 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             else if(areEqual(maxAverage, averageZX, 0.000001)){
                 plot(vectorZX, peripheralIdentifier, currentTimestamp);
             }
-
-            /*
-            for (int num=0;num<numbers1.size();num++) {
-                String line1 = Double.toString(numbers1.get(num));
-                final String[] valuesStrings1 = line1.split("[,; \t]");
-
-                int j = 0;
-                for (int str=0;str< valuesStrings1.length;str++) {
-                    boolean isValid1 = true;
-                    float value1 = 0;
-
-                    if (valuesStrings1[str] != null) {
-                        try {
-                            value1 = Float.parseFloat(valuesStrings1[str]);
-                        } catch (NumberFormatException ignored) {
-                            isValid1 = false;
-                        }
-                    } else {
-                        isValid1 = false;
-                    }
-
-                    if (isValid1 && peripheralIdentifier != null) {
-                        addSecondEntry(peripheralIdentifier, j, value1, currentTimestamp);
-                        j++;
-                    }
-                }
-            }
-
-            for (int num=0;num<numbers2.size();num++) {
-                String line2 = Double.toString(numbers2.get(num));
-                final String[] valuesStrings2 = line2.split("[,; \t]");
-
-                int j = 0;
-                for (int str=0;str< valuesStrings2.length;str++) {
-                    boolean isValid2 = true;
-                    float value2 = 0;
-
-                    if (valuesStrings2[str] != null) {
-                        try {
-                            value2 = Float.parseFloat(valuesStrings2[str]);
-                        } catch (NumberFormatException ignored) {
-                            isValid2 = false;
-                        }
-                    } else {
-                        isValid2 = false;
-                    }
-
-                    if (isValid2 && peripheralIdentifier != null) {
-                        addThirdEntry(peripheralIdentifier, j, value2, currentTimestamp);
-                        j++;
-                    }
-                }
-            }
-
-            for (int num=0;num<numbers3.size();num++) {
-                String line3 = Double.toString(numbers3.get(num));
-                final String[] valuesStrings3 = line3.split("[,; \t]");
-
-                int j = 0;
-                for (int str=0;str< valuesStrings3.length;str++) {
-                    boolean isValid3 = true;
-                    float value3 = 0;
-
-                    if (valuesStrings3[str] != null) {
-                        try {
-                            value3 = Float.parseFloat(valuesStrings3[str]);
-                        } catch (NumberFormatException ignored) {
-                            isValid3 = false;
-                        }
-                    } else {
-                        isValid3 = false;
-                    }
-
-                    if (isValid3 && peripheralIdentifier != null) {
-                        addForthEntry(peripheralIdentifier, j, value3, currentTimestamp);
-                        j++;
-                    }
-                }
-            }
-             */
 
             // Peak Detection from java
             DecimalFormat df = new DecimalFormat("#0.000");
@@ -1327,7 +1247,10 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                         if (counter % 10 == 0) {
                             List<Integer> rPeaks = RPeakDetector.detectRPeaks(timerData);
                             double heartRate = calculateHeartRate(rPeaks, 5);
-                            //System.out.println("HEART Rate " + heartRate);
+                            for (int r : rPeaks){
+                                System.out.println("RPeaks " + r);
+                            }
+                            System.out.println("HEART Rate " + heartRate);
                             if (heartRate > 60 && heartRate < 140 ) {
                                 heartRateEditText.setTextIsSelectable(true);
                                 heartRateEditText.setMovementMethod(LinkMovementMethod.getInstance());
