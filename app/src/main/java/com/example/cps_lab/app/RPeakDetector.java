@@ -83,7 +83,7 @@ public class RPeakDetector {
     public static double[] applyThreshold(double[] differentiatedSignal) {
         double[] thresholdedSignal = new double[differentiatedSignal.length];
         double threshold = findThreshold(differentiatedSignal);
-        System.out.println("Threshold " + threshold);
+        //System.out.println("Threshold " + threshold);
         for (int i = 0; i < differentiatedSignal.length; i++) {
             if (differentiatedSignal[i] > threshold) {
                 thresholdedSignal[i] = 1;

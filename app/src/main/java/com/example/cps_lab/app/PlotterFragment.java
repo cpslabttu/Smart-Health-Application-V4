@@ -930,12 +930,14 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     private String csvforEcgDataWhileAbnormal = null;
 
     private String csvinterPolate = null;
+    private String csvRespiration = null;
 
     private CSVWriter writerECG = null;
     private CSVWriter writerHeartRate = null;
     private CSVWriter writerEcgDataWhileAbnormal = null;
 
     private CSVWriter writerInterPolate = null;
+    private CSVWriter writerRespiration = null;
     private String formattedTime = null;
 
     private ArrayList<Double> vectorValueList = new ArrayList<>();
@@ -1019,7 +1021,8 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             if (!folder.exists()) {
                 if (folder.mkdirs()) {
                     // Folder created successfully
-                    csvinterPolate = new File(folder, "InterPolate.csv").getPath();
+                    csvinterPolate = new File(folder, "RespiratoryData.csv").getPath();
+                    csvRespiration = new File(folder, "RespirationRate.csv").getPath();
                 } else {
                     // Failed to create folder
                     System.out.println("Can't Create Folder");
@@ -1082,7 +1085,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 
                 if(folder.exists()){
                     try {
-                        File fileInterPolate = new File(folder, "InterPolate.csv");
+                        File fileInterPolate = new File(folder, "RespiratoryData.csv");
                         if (!fileInterPolate.exists()) {
                             fileInterPolate.createNewFile();
                         }
@@ -1139,15 +1142,31 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                 respirationPeaks = interPolatedList.size();
                 respirationRate.add(Double.valueOf(respirationPeaks));
                 respirationPeakCounter++;
-                //System.out.println("Respiration Peaks " + respirationPeaks + " " + respirationPeakCounter);
+                System.out.println("Respiration Peaks " + respirationPeaks + " " + respirationPeakCounter);
 
                 if (respirationPeakCounter == 6){
                     int respRate = 0;
                     for(Double res : respirationRate){
                         respRate += res;
                     }
-                    //System.out.println("Respiration Rate " + respRate);
+                    System.out.println("Respiration Rate " + respRate);
                     respirationRateText.setText(String.valueOf(respRate));
+
+                    if(folder.exists()){
+                        try {
+                            File fileRespiration = new File(folder, "RespirationRate.csv");
+                            if (!fileRespiration.exists()) {
+                                fileRespiration.createNewFile();
+                            }
+                            writerRespiration = new CSVWriter(new FileWriter(fileRespiration, true));
+                            writerRespiration.writeAll(Collections.singleton(new String[]{Double.toString(respRate)}));
+                            writerRespiration.close();
+                        }
+                        catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
                     respirationPeakCounter--;
                     respirationRate = shiftLeft(respirationRate);
                 }
@@ -1245,12 +1264,12 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 //                        }
 
                         if (counter % 10 == 0) {
-                            List<Integer> rPeaks = RPeakDetector.detectRPeaks(timerData);
+                            List<Integer> rPeaks = RPeakDetector.detectRPeaks(nonLinearAmplification(timerData, new ArrayList<>()));
                             double heartRate = calculateHeartRate(rPeaks, 5);
-                            for (int r : rPeaks){
-                                System.out.println("RPeaks " + r);
-                            }
-                            System.out.println("HEART Rate " + heartRate);
+//                            for (int r : rPeaks){
+//                                System.out.println("RPeaks " + r);
+//                            }
+//                            System.out.println("HEART Rate " + heartRate);
                             if (heartRate > 60 && heartRate < 140 ) {
                                 heartRateEditText.setTextIsSelectable(true);
                                 heartRateEditText.setMovementMethod(LinkMovementMethod.getInstance());
