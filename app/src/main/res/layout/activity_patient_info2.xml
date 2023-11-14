@@ -42,20 +42,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="@color/green_A700"
-        android:hint="Age" />
+        android:hint="Age (years)" />
 
     <EditText
         android:id="@+id/editTextHeight"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Height"
+        android:hint="Height (cm)"
         android:textColor="@color/green_A700"/>
 
     <EditText
         android:id="@+id/editTextWeight"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Weight"
+        android:hint="Weight (lb)"
         android:textColor="@color/green_A700"/>
 
     <RadioGroup
