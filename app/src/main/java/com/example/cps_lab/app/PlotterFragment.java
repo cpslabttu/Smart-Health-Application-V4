@@ -996,8 +996,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 
         //
         if (found) {
-
-
+            long startTimeMillis  = System.currentTimeMillis();
             final byte[] subData = Arrays.copyOfRange(data, 0, lastSeparator);
             final float currentTimestamp = (System.currentTimeMillis() - mOriginTimestamp) / 1000.f;
             String dataString = BleUtils.bytesToHex2(subData);
@@ -1090,9 +1089,15 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                             fileInterPolate.createNewFile();
                         }
                         writerInterPolate = new CSVWriter(new FileWriter(fileInterPolate, true));
-                        for(int ii=0;ii<normalizedX.size();ii++) {
+                        List<Double> filteredX = preprocessYData(normalizedX);
+                        List<Double> filteredY = preprocessYData(normalizedY);
+                        List<Double> filteredZ = preprocessYData(normalizedZ);
+                        List<Double> filteredXY = preprocessYData(normalizedXY);
+                        List<Double> filteredYZ = preprocessYData(normalizedYZ);
+                        List<Double> filteredZX = preprocessYData(normalizedZX);
+                        for(int ii=0;ii<filteredX.size();ii++) {
                             //writerInterPolate.writeAll(Collections.singleton(new String[]{String.valueOf(interPolatedList.get(ii))}));
-                            writerInterPolate.writeAll(Collections.singleton(new String[]{String.valueOf(normalizedX.get(ii)), String.valueOf(normalizedY.get(ii)), String.valueOf(normalizedZ.get(ii)), String.valueOf(normalizedXY.get(ii)), String.valueOf(normalizedYZ.get(ii)), String.valueOf(normalizedZX.get(ii))}));
+                            writerInterPolate.writeAll(Collections.singleton(new String[]{String.valueOf(filteredX.get(ii)), String.valueOf(filteredY.get(ii)), String.valueOf(filteredZ.get(ii)), String.valueOf(filteredXY.get(ii)), String.valueOf(filteredYZ.get(ii)), String.valueOf(filteredZX.get(ii))}));
                         }
                         writerInterPolate.close();
                     }
@@ -1115,8 +1120,8 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                 averageYZ = standardDeviationAndAverage(normalizedYZ);
                 averageZX = standardDeviationAndAverage(normalizedZX);
                 maxAverage = Math.max(averageX, Math.max(averageY, Math.max(averageZ, Math.max(averageXY, Math.max(averageYZ, averageZX)))));
-                //System.out.println("X - " + averageX + " Y - " + averageY + " Z - " + averageZ + " XY - " + averageXY + " YZ - " + averageYZ + " ZX - " + averageZX);
-                //System.out.println("MaxAverage: " + maxAverage);
+                System.out.println("X - " + averageX + " Y - " + averageY + " Z - " + averageZ + " XY - " + averageXY + " YZ - " + averageYZ + " ZX - " + averageZX);
+                System.out.println("MaxAverage: " + maxAverage);
 
                 List<Double> interPolatedList = new ArrayList<>();
                 if(areEqual(maxAverage, averageX, 0.000001)){
@@ -1199,7 +1204,6 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             }
 
             // Peak Detection from java
-            DecimalFormat df = new DecimalFormat("#0.000");
             ArrayList<Double> doubleData= new ArrayList<Double>();
             for(String lineString : dataStrings){
                 doubleData.add(Double.parseDouble(lineString));
@@ -1224,10 +1228,6 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             counter++;
             timerData.addAll(filteredDataList);
 
-            // Create folder if it doesn't exist
-            // Obtain the root directory of external storage
-//            File externalDir = getContext().getExternalFilesDir(null);
-//            File folder = new File(externalDir, folderPath);
             if (!folder.exists()) {
                 if (folder.mkdirs()) {
                     // Folder created successfully
@@ -1452,6 +1452,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 
                                     // Releases model resources if no longer used.
                                     model.close();
+                                    //calculateAndLogElapsedTime(startTimeMillis);
                                 } catch (IOException e) {
                                     e.printStackTrace();
                                 }
@@ -1944,6 +1945,19 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         return filteredList;
     }
 
+    private void calculateAndLogElapsedTime(long startTimeMillis) {
+        long currentTimeMillis = System.currentTimeMillis();
+
+        long elapsedTimeMillis = currentTimeMillis - startTimeMillis;
+
+        Date elapsedTimeDate = new Date(elapsedTimeMillis);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault());
+
+        String formattedElapsedTime = sdf.format(elapsedTimeDate);
+
+        Log.d("ElapsedTime", "Elapsed Time: " + formattedElapsedTime);
+    }
 
     // endregion
 }
