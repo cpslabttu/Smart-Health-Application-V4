@@ -46,6 +46,7 @@ import com.example.cps_lab.style.UartStyle;
 import com.example.cps_lab.utils.DialogUtils;
 import com.example.cps_lab.utils.ZipUtils;
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
@@ -1863,9 +1864,23 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         return sum/standardDevList.size();
     }
 
+    private int plotCount = 0;
+
     public void plot(double x, String peripheralIdentifier, float currentTimestamp){
         String line1 = Double.toString(x);
         final String[] valuesStrings1 = line1.split("[,; \t]");
+
+        if(plotCount == 100) {
+            YAxis yAxisLeft = mSecondChart.getAxisLeft();
+            YAxis yAxisRight = mSecondChart.getAxisRight();
+            float desiredYRange = 200f;
+            yAxisLeft.setAxisMinimum((float) (x - desiredYRange / 2f));
+            yAxisLeft.setAxisMaximum((float) (x + desiredYRange / 2f));
+            yAxisRight.setAxisMinimum((float) (x - desiredYRange / 2f));
+            yAxisRight.setAxisMaximum((float) (x + desiredYRange / 2f));
+            plotCount = 0;
+        }
+        plotCount++;
 
         int j = 0;
         for (int str=0;str< valuesStrings1.length;str++) {
