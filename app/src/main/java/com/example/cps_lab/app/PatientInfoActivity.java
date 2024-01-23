@@ -81,8 +81,8 @@ public class PatientInfoActivity extends AppCompatActivity {
                     String patientInfoAll = "Zip Code: " + zipCode + "\n"
                             + "Age: " + age + "\n"
                             + "Gender: " + gender + "\n"
-                            + "Height: " + height + "\n"
-                            + "Weight: " + weight;
+                            + "Height: " + height + " cm" + "\n"
+                            + "Weight: " + weight + " lb";
                     // Save the information in shared preferences
                     SharedPreferences sharedPreferences = getSharedPreferences("Patient", MODE_PRIVATE);
                     SharedPreferences.Editor editor = sharedPreferences.edit();

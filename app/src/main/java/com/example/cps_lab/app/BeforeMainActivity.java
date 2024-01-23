@@ -23,7 +23,7 @@ public class BeforeMainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_before_main);
 
         logIn= (Button) findViewById(R.id.login);
-        logIn.setVisibility(View.GONE);
+        //logIn.setVisibility(View.GONE);
         signUp= (Button) findViewById(R.id.signup);
         signUp.setVisibility(View.GONE);
         guestAccess= (Button) findViewById(R.id.guestaccess);

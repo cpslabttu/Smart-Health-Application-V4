@@ -46,6 +46,7 @@ import com.example.cps_lab.style.UartStyle;
 import com.example.cps_lab.utils.DialogUtils;
 import com.example.cps_lab.utils.ZipUtils;
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
@@ -1186,22 +1187,22 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             }
 
             if(areEqual(maxAverage, averageX, 0.000001)){
-                plot(Double.valueOf(xAxisInt), peripheralIdentifier, currentTimestamp);
+                plotRespiratorySignal(Double.valueOf(xAxisInt), peripheralIdentifier, currentTimestamp);
             }
             else if(areEqual(maxAverage, averageY, 0.000001)){
-                plot(Double.valueOf(yAxisInt), peripheralIdentifier, currentTimestamp);
+                plotRespiratorySignal(Double.valueOf(yAxisInt), peripheralIdentifier, currentTimestamp);
             }
             else if(areEqual(maxAverage, averageZ, 0.000001)){
-                plot(Double.valueOf(zAxisInt), peripheralIdentifier, currentTimestamp);
+                plotRespiratorySignal(Double.valueOf(zAxisInt), peripheralIdentifier, currentTimestamp);
             }
             else if(areEqual(maxAverage, averageXY, 0.000001)){
-                plot(vectorXY, peripheralIdentifier, currentTimestamp);
+                plotRespiratorySignal(vectorXY, peripheralIdentifier, currentTimestamp);
             }
             else if(areEqual(maxAverage, averageYZ, 0.000001)){
-                plot(vectorYZ, peripheralIdentifier, currentTimestamp);
+                plotRespiratorySignal(vectorYZ, peripheralIdentifier, currentTimestamp);
             }
             else if(areEqual(maxAverage, averageZX, 0.000001)){
-                plot(vectorZX, peripheralIdentifier, currentTimestamp);
+                plotRespiratorySignal(vectorZX, peripheralIdentifier, currentTimestamp);
             }
 
             // Peak Detection from java
@@ -1506,7 +1507,13 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                         for (Double filteredData : filteredDataList) {
                             String lineString = Double.toString(filteredData);
                             final String[] valuesStrings = lineString.split("[,; \t]");
+                            XAxis xAxisEcg = mChart.getXAxis();
+                            xAxisEcg.setLabelRotationAngle(45f);
+
+                            YAxis yAxisRightEcg = mChart.getAxisRight();
+                            yAxisRightEcg.setDrawLabels(false);
                             int j = 0;
+
                             for (String valueString : valuesStrings) {
                                 boolean isValid = true;
                                 float value = 0;
@@ -1866,18 +1873,20 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 
     private int plotCount = 0;
 
-    public void plot(double x, String peripheralIdentifier, float currentTimestamp){
+    public void plotRespiratorySignal(double x, String peripheralIdentifier, float currentTimestamp){
         String line1 = Double.toString(x);
         final String[] valuesStrings1 = line1.split("[,; \t]");
+        XAxis xAxis = mSecondChart.getXAxis();
+        xAxis.setLabelRotationAngle(45f);
+
+        YAxis yAxisLeft = mSecondChart.getAxisLeft();
+        YAxis yAxisRight = mSecondChart.getAxisRight();
+        yAxisRight.setDrawLabels(false);
 
         if(plotCount == 100) {
-            YAxis yAxisLeft = mSecondChart.getAxisLeft();
-            YAxis yAxisRight = mSecondChart.getAxisRight();
             float desiredYRange = 200f;
             yAxisLeft.setAxisMinimum((float) (x - desiredYRange / 2f));
             yAxisLeft.setAxisMaximum((float) (x + desiredYRange / 2f));
-            yAxisRight.setAxisMinimum((float) (x - desiredYRange / 2f));
-            yAxisRight.setAxisMaximum((float) (x + desiredYRange / 2f));
             plotCount = 0;
         }
         plotCount++;
