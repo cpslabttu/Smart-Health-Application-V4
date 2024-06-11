@@ -63,6 +63,7 @@ import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -963,6 +964,14 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     List<Double> normalizedXY = new ArrayList<>();
     List<Double> normalizedYZ = new ArrayList<>();
     List<Double> normalizedZX = new ArrayList<>();
+
+    List<Double> filteredX = new ArrayList<>();
+    List<Double> filteredY = new ArrayList<>();
+    List<Double> filteredZ = new ArrayList<>();
+    List<Double> filteredXY = new ArrayList<>();
+    List<Double> filteredYZ = new ArrayList<>();
+    List<Double> filteredZX = new ArrayList<>();
+
     double averageX = 0.0;
     double averageY = 0.0;
     double averageZ = 0.0;
@@ -996,7 +1005,6 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         }
         final int lastSeparator = i + 1;
 
-        //
         if (found) {
             long startTimeMillis  = System.currentTimeMillis();
             final byte[] subData = Arrays.copyOfRange(data, 0, lastSeparator);
@@ -1030,7 +1038,6 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                 }
             }
 
-
             String xAxis = strings[98] + strings[97];
             int xAxisInt = Integer.parseInt(xAxis, 16);
             if(xAxisInt > 32767){
@@ -1059,14 +1066,9 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             double vectorZX = Math.sqrt(zAxisInt * zAxisInt + xAxisInt * xAxisInt);
             numbers6.add(vectorZX);
 
-            //System.out.println("XAxis: " + xAxisInt + "  YAxis: " + yAxisInt + "  ZAxis: " + zAxisInt);
-            //double vectorValue = Math.sqrt(yAxisInt * yAxisInt + zAxisInt * zAxisInt);
-            //System.out.println("Vector Value: " + vectorValue);
-
-            //vectorValueList.add(Double.valueOf(zAxisInt));
             vectorValueCounter++;
-            if(vectorValueCounter == 200){
-                normalizedX = nonLinearAmplification(numbers1, numbers1end);
+            if(vectorValueCounter == 600){
+                normalizedX = nonLinearAmplification(numbers1, numbers1end);  // Amplified Data
                 numbers1end = numbers1.subList(numbers1.size() - 10, numbers1.size());
 
                 normalizedY = nonLinearAmplification(numbers2, numbers2end);
@@ -1084,6 +1086,24 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                 normalizedZX = nonLinearAmplification(numbers6, numbers6end);
                 numbers6end = numbers6.subList(numbers6.size() - 10, numbers6.size());
 
+                double[] peakX = WelchMethod.welchPSD(normalizedX, vectorValueCounter, 300, 20);
+//                double peakFrequency = peakX[0];
+//                double bandwidth = peakX[1];
+//                System.out.println("Breathing Frequency :" + peakFrequency + " " + bandwidth);
+                double[] peakY = WelchMethod.welchPSD(normalizedY, vectorValueCounter, 300, 20);
+                double[] peakZ = WelchMethod.welchPSD(normalizedZ, vectorValueCounter, 300, 20);
+                double[] peakXY = WelchMethod.welchPSD(normalizedXY, vectorValueCounter, 300, 20);
+                double[] peakYZ = WelchMethod.welchPSD(normalizedYZ, vectorValueCounter, 300, 20);
+                double[] peakZX = WelchMethod.welchPSD(normalizedZX, vectorValueCounter, 300, 20);
+
+                filteredX = ButterworthFilter.butterworthFilter(normalizedX, peakX[0] + peakX[1] / 2, 20);
+                filteredY = ButterworthFilter.butterworthFilter(normalizedY, peakY[0] + peakY[1] / 2, 20);
+                filteredZ = ButterworthFilter.butterworthFilter(normalizedZ, peakZ[0] + peakZ[1] / 2, 20);
+                filteredXY = ButterworthFilter.butterworthFilter(normalizedXY, peakXY[0] + peakXY[1] / 2, 20);
+                filteredYZ = ButterworthFilter.butterworthFilter(normalizedYZ, peakYZ[0] + peakYZ[1] / 2, 20);
+                filteredZX = ButterworthFilter.butterworthFilter(normalizedZX, peakZX[0] + peakZX[1] /2, 20);
+
+
                 if(folder.exists()){
                     try {
                         File fileInterPolate = new File(folder, "RespiratoryData.csv");
@@ -1091,12 +1111,12 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                             fileInterPolate.createNewFile();
                         }
                         writerInterPolate = new CSVWriter(new FileWriter(fileInterPolate, true));
-                        List<Double> filteredX = preprocessYData(normalizedX);
-                        List<Double> filteredY = preprocessYData(normalizedY);
-                        List<Double> filteredZ = preprocessYData(normalizedZ);
-                        List<Double> filteredXY = preprocessYData(normalizedXY);
-                        List<Double> filteredYZ = preprocessYData(normalizedYZ);
-                        List<Double> filteredZX = preprocessYData(normalizedZX);
+//                        List<Double> filteredX = preprocessYData(normalizedX);
+//                        List<Double> filteredY = preprocessYData(normalizedY);
+//                        List<Double> filteredZ = preprocessYData(normalizedZ);
+//                        List<Double> filteredXY = preprocessYData(normalizedXY);
+//                        List<Double> filteredYZ = preprocessYData(normalizedYZ);
+//                        List<Double> filteredZX = preprocessYData(normalizedZX);
                         for(int ii=0;ii<filteredX.size();ii++) {
                             //writerInterPolate.writeAll(Collections.singleton(new String[]{String.valueOf(interPolatedList.get(ii))}));
                             writerInterPolate.writeAll(Collections.singleton(new String[]{String.valueOf(filteredX.get(ii)), String.valueOf(filteredY.get(ii)), String.valueOf(filteredZ.get(ii)), String.valueOf(filteredXY.get(ii)), String.valueOf(filteredYZ.get(ii)), String.valueOf(filteredZX.get(ii))}));
@@ -1108,12 +1128,12 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                     }
                 }
 
-                normalizedX = normalize(normalizedX);
-                normalizedY = normalize(normalizedY);
-                normalizedZ = normalize(normalizedZ);
-                normalizedXY = normalize(normalizedXY);
-                normalizedYZ = normalize(normalizedYZ);
-                normalizedZX = normalize(normalizedZX);
+                normalizedX = normalize(filteredX); //Replace with filteredX
+                normalizedY = normalize(filteredY);
+                normalizedZ = normalize(filteredZ);
+                normalizedXY = normalize(filteredXY);
+                normalizedYZ = normalize(filteredYZ);
+                normalizedZX = normalize(filteredZX);
 
                 averageX = standardDeviationAndAverage(normalizedX);
                 averageY = standardDeviationAndAverage(normalizedY);
@@ -1122,42 +1142,58 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                 averageYZ = standardDeviationAndAverage(normalizedYZ);
                 averageZX = standardDeviationAndAverage(normalizedZX);
                 maxAverage = Math.max(averageX, Math.max(averageY, Math.max(averageZ, Math.max(averageXY, Math.max(averageYZ, averageZX)))));
-                System.out.println("X - " + averageX + " Y - " + averageY + " Z - " + averageZ + " XY - " + averageXY + " YZ - " + averageYZ + " ZX - " + averageZX);
-                System.out.println("MaxAverage: " + maxAverage);
+                //System.out.println("X - " + averageX + " Y - " + averageY + " Z - " + averageZ + " XY - " + averageXY + " YZ - " + averageYZ + " ZX - " + averageZX);
+                //System.out.println("MaxAverage: " + maxAverage);
 
                 List<Double> interPolatedList = new ArrayList<>();
                 if(areEqual(maxAverage, averageX, 0.000001)){
-                    interPolatedList = splineInterpolationWithPeakDetection(normalizedX);
+                    System.out.println("Breathing Frequency X:" + peakX[0] + " " + peakX[1]);
+                    interPolatedList = splineInterpolationWithPeakDetection(filteredX); //Replace with filteredX
                 }
                 else if(areEqual(maxAverage, averageY, 0.000001)){
-                    interPolatedList = splineInterpolationWithPeakDetection(normalizedY);
+                    System.out.println("Breathing Frequency Y:" + peakY[0] + " " + peakY[1]);
+                    interPolatedList = splineInterpolationWithPeakDetection(filteredY);
                 }
                 else if(areEqual(maxAverage, averageZ, 0.000001)){
-                    interPolatedList = splineInterpolationWithPeakDetection(normalizedZ);
+                    System.out.println("Breathing Frequency Z:" + peakZ[0] + " " + peakZ[1]);
+                    interPolatedList = splineInterpolationWithPeakDetection(filteredZ);
                 }
                 else if(areEqual(maxAverage, averageXY, 0.000001)){
-                    interPolatedList = splineInterpolationWithPeakDetection(normalizedXY);
+                    System.out.println("Breathing Frequency XY:" + peakXY[0] + " " + peakXY[1]);
+                    interPolatedList = splineInterpolationWithPeakDetection(filteredXY);
                 }
                 else if(areEqual(maxAverage, averageYZ, 0.000001)){
-                    interPolatedList = splineInterpolationWithPeakDetection(normalizedYZ);
+                    System.out.println("Breathing Frequency YZ:" + peakYZ[0] + " " + peakYZ[1]);
+                    interPolatedList = splineInterpolationWithPeakDetection(filteredYZ);
                 }
                 else if(areEqual(maxAverage, averageZX, 0.000001)){
-                    interPolatedList = splineInterpolationWithPeakDetection(normalizedZX);
+                    System.out.println("Breathing Frequency ZX:" + peakZX[0] + " " + peakZX[1]);
+                    interPolatedList = splineInterpolationWithPeakDetection(filteredZX);
                 }
+
+//                List<Double[]> apneaEvents = SignalProcessor.detectApnea(normalizedZX, 20, 0.1, 10);
+//                // Print detected apnea events
+//                System.out.println("Detected Apnea Events:");
+//                for (Double[] event : apneaEvents) {
+//                    double start = event[0];
+//                    double end = event[1];
+//                    System.out.printf("From %.2fs to %.2fs\n", start, end);
+//                }
+//                System.out.printf("Total apnea events detected: %d\n", apneaEvents.size());
 
                 vectorValueCounter = 0;
                 respirationPeaks = interPolatedList.size();
                 respirationRate.add(Double.valueOf(respirationPeaks));
                 respirationPeakCounter++;
-                System.out.println("Respiration Peaks " + respirationPeaks + " " + respirationPeakCounter);
+                //System.out.println("Respiration Peaks " + respirationPeaks + " " + respirationPeakCounter);
 
-                if (respirationPeakCounter == 6){
+                if (respirationPeakCounter == 2){
                     int respRate = 0;
                     for(Double res : respirationRate){
                         respRate += res;
                     }
                     System.out.println("Respiration Rate " + respRate);
-                    respirationRateText.setText(String.valueOf(respRate));
+                    respirationRateText.setText(String.valueOf((int) (respRate)));
 
                     if(folder.exists()){
                         try {
@@ -1166,7 +1202,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                 fileRespiration.createNewFile();
                             }
                             writerRespiration = new CSVWriter(new FileWriter(fileRespiration, true));
-                            writerRespiration.writeAll(Collections.singleton(new String[]{Double.toString(respRate)}));
+                            writerRespiration.writeAll(Collections.singleton(new String[]{Integer.toString((int) (respRate))}));
                             writerRespiration.close();
                         }
                         catch (IOException e) {
@@ -1268,10 +1304,6 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                         if (counter % 10 == 0) {
                             List<Integer> rPeaks = RPeakDetector.detectRPeaks(nonLinearAmplification(timerData, new ArrayList<>()));
                             double heartRate = calculateHeartRate(rPeaks, 5);
-//                            for (int r : rPeaks){
-//                                System.out.println("RPeaks " + r);
-//                            }
-//                            System.out.println("HEART Rate " + heartRate);
                             if (heartRate > 60 && heartRate < 140 ) {
                                 heartRateEditText.setTextIsSelectable(true);
                                 heartRateEditText.setMovementMethod(LinkMovementMethod.getInstance());
@@ -1316,8 +1348,8 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                 }
 
                                 //System.out.println("ECGMAX " + ecgMax + " " + ecgMin);
-                                double targetMin = -25.985; //-14.44;
-                                double targetMax = 30.575; //3.805;
+                                double targetMin = -14.44; // -25.985; //-14.44;
+                                double targetMax = 3.805; //30.575; //3.805;
 
                                 // Pack ECG data into a ByteBuffer
                                 ByteBuffer byteBuffer = ByteBuffer.allocate(160 * 4);
@@ -1355,13 +1387,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
 
                                 // Get predicted class
                                 float[] scores = outputFeature0.getFloatArray();
-//                                System.out.println("New\n");
-//                                for (float score : scores) {
-//                                    System.out.println("Scores " + score);
-//                                }
                                 predictClass[algoCounter] = getMaxIndexforANN(scores);
-
-                                // Releases model resources if no longer used.
                                 model.close();
                             } catch (IOException e) {
                                 e.printStackTrace();
@@ -1792,6 +1818,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         for (int i = 1; i < values.size() - 1; i++) {
             if (values.get(i) > values.get(i - 1) && values.get(i) > values.get(i + 1)) {
                 peakValues.add(values.get(i));
+                i += 14;
             }
         }
         return peakValues;
@@ -1928,7 +1955,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         List<Double> amplifiedZ = new ArrayList<>();
         // Apply non-linear amplification (e.g., squaring) and store in amplifiedZ list
         for (Double value : valueList) {
-            double amplifiedValue = Math.pow(value, 2.0); // You can change the exponent as needed
+            double amplifiedValue = Math.pow(value, 3.0); // You can change the exponent as needed
             amplifiedZ.add(amplifiedValue);
         }
 
