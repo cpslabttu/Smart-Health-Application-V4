@@ -223,11 +223,10 @@
             android:layout_marginLeft="10dp"
             android:padding="10dp"
             android:textSize="13sp"
-            android:background="@drawable/rounded_btn_green"
+            android:background="@drawable/wait"
             android:textColor="@color/white"
             android:layout_width="100dp"
             android:layout_height="40dp"
-            android:text="NORMAL"
             android:gravity="center"
             android:clickable="true"
             android:onClick="toggleState" />
