@@ -77,7 +77,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:weightSum="3">
+        android:weightSum="4">
 
         <TextView
             android:layout_width="0dp"
@@ -100,7 +100,16 @@
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Respiration\nRate"
+            android:text="Respiration\nRate (IMU)"
+            android:textColor="@color/black"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_weight="1" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Respiration\nRate (ECG)"
             android:textColor="@color/black"
             android:textStyle="bold"
             android:gravity="center"
@@ -112,7 +121,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:weightSum="3">
+        android:weightSum="4">
 
         <TextView
             android:id="@+id/heartBeatRate"
@@ -142,6 +151,19 @@
 
         <TextView
             android:id="@+id/respirationRate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:inputType="number"
+            android:gravity="center"
+            android:textColor="@color/blue_grey_500"
+            android:layout_marginStart="2.5dp"
+            android:layout_marginEnd="5dp"
+            android:textSize="18sp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/respirationRatefromECG"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"

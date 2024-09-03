@@ -58,6 +58,7 @@ import com.opencsv.CSVWriter;
 
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
+import org.apache.commons.math3.exception.NumberIsTooSmallException;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
@@ -103,6 +104,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     private TextView heartRateEditText;
     private TextView avgHeartRateEditText;
     private TextView respirationRateText;
+    private TextView respirationRatefromECGText;
 
     private Button backDashboard;
     private Button exitButton;
@@ -176,6 +178,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         heartRateEditText= view.findViewById(R.id.heartBeatRate);
         avgHeartRateEditText= view.findViewById(R.id.avgheartBeatRate);
         respirationRateText = view.findViewById(R.id.respirationRate);
+        respirationRatefromECGText = view.findViewById(R.id.respirationRatefromECG);
         WeakReference<PlotterFragment> weakThis = new WeakReference<>(this);
         SwitchCompat autoscrollSwitch = view.findViewById(R.id.autoscrollSwitch);
         autoscrollSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -252,7 +255,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         System.out.println("PATIENT" + patientInfo);
 
         String attachText = "ECG data";
-        String emailRecipient = "ucchwas09@gmail.com";
+        String emailRecipient = "uutsha@ttu.edu, mahfrahm@ttu.edu";
         String emailSubject = "Data Export";
         exitButton = view.findViewById(R.id.exit_button);
         exitButton.setOnClickListener(new View.OnClickListener() {
@@ -979,6 +982,10 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
     List<List<String>> allArrhythmicData = new ArrayList<>();
     private int allArrhymicDatacounter = 0;
     private int noiseCounter = 0;
+    private int EcgDerivedRespCounter = 0;
+    private ArrayList<Double> EcgDerivedRespList = new ArrayList<>();
+    public String csvEcgDerivedResp= null;
+    private CSVWriter writerEcgDerivedResp = null;
 
 
 
@@ -1024,6 +1031,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                     // Folder created successfully
                     csvinterPolate = new File(folder, "RespiratoryData.csv").getPath();
                     csvRespiration = new File(folder, "RespirationRate.csv").getPath();
+                    csvEcgDerivedResp = new File(folder, "EcgDerivedResp.csv").getPath();
                 } else {
                     // Failed to create folder
                     System.out.println("Can't Create Folder");
@@ -1147,16 +1155,6 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                     interPolatedList = splineInterpolationWithPeakDetection(filteredZX);
                 }
 
-//                List<Double[]> apneaEvents = SignalProcessor.detectApnea(normalizedZX, 20, 0.1, 10);
-//                // Print detected apnea events
-//                System.out.println("Detected Apnea Events:");
-//                for (Double[] event : apneaEvents) {
-//                    double start = event[0];
-//                    double end = event[1];
-//                    System.out.printf("From %.2fs to %.2fs\n", start, end);
-//                }
-//                System.out.printf("Total apnea events detected: %d\n", apneaEvents.size());
-
                 vectorValueCounter = 0;
                 respirationPeaks = interPolatedList.size();
                 respirationRate.add(Double.valueOf(respirationPeaks));
@@ -1168,7 +1166,7 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                     for(Double res : respirationRate){
                         respRate += res;
                     }
-                    System.out.println("Respiration Rate " + respRate);
+                    //System.out.println("Respiration Rate " + respRate);
                     respirationRateText.setText(String.valueOf((int) (respRate)));
 
                     if(folder.exists()){
@@ -1237,8 +1235,44 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
             }
 
             List<Double> filteredDataList = resultsMap.get("filteredData");
+            EcgDerivedRespList.addAll(filteredDataList);
 
-            System.out.println("FIltered Data Size " + filteredDataList.size());
+            EcgDerivedRespCounter++;
+            if(EcgDerivedRespCounter == 625){
+                List<Integer> EcgDerivedRespRPeaks = RPeakDetectorforDerivedResp.detectRPeaks(EcgDerivedRespList);
+                List<Double> EcgDerivedRespRPeaksAmp = RPeakDetectorforDerivedResp.detectRPeaksAmplitude(EcgDerivedRespList);
+                List<Double> EcgDerivedRPeaks = new ArrayList<>();
+                if (EcgDerivedRespRPeaks.size() != 0 && EcgDerivedRespRPeaksAmp.size() != 0 && EcgDerivedRespRPeaks.size() == EcgDerivedRespRPeaksAmp.size()) {
+                    double[][] result = interpolateAndFindPeaks(EcgDerivedRespRPeaks, EcgDerivedRespRPeaksAmp);
+                    if (result.length != 0) {
+                    EcgDerivedRPeaks = applyMovingAverage(result[1], 20);
+                    List<Double> EcgDerivedRPeaksAll = findPeaksforECGderivedResp(EcgDerivedRPeaks);
+                    respirationRatefromECGText.setText(String.valueOf((int) (EcgDerivedRPeaksAll.size() * 2)));
+                    System.out.println("Size of Both " + EcgDerivedRespRPeaks.size() + " " + EcgDerivedRPeaks.size() + " " + EcgDerivedRPeaksAll.size());
+
+                    }
+                }
+                if (folder.exists()) {
+                    try {
+                        File fileInterPolate = new File(folder, "EcgDerivedResp.csv");
+                        if (!fileInterPolate.exists()) {
+                            fileInterPolate.createNewFile();
+                        }
+
+                        CSVWriter writerEcgDerivedResp = new CSVWriter(new FileWriter(fileInterPolate, true));
+                        for (int s = 0; s < EcgDerivedRPeaks.size(); s++) {
+                            writerEcgDerivedResp.writeAll(Collections.singleton(new String[]{
+                                    String.valueOf(EcgDerivedRPeaks.get(s))}));
+                        }
+                        writerEcgDerivedResp.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                EcgDerivedRespCounter = 0;
+                EcgDerivedRespList = new ArrayList<>();
+            }
 
             /* Heart Rate Calculation */
             counter++;
@@ -1463,16 +1497,16 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
                                         long currentTimeMillis = System.currentTimeMillis();
                                         formattedTime = sdf.format(currentTime) + String.format(":%02d", currentTimeMillis % 1000 / 10);
 
-                                        for (int cls = 0; cls < classes.length; cls++) {
-                                            System.out.println("Classes " + cls + " " + classes[cls] + " " + predictforArrhythmia + " " + getMaxIndexforInt(classes));
-                                        }
+//                                        for (int cls = 0; cls < classes.length; cls++) {
+//                                            System.out.println("Classes " + cls + " " + classes[cls] + " " + predictforArrhythmia + " " + getMaxIndexforInt(classes));
+//                                        }
                                     }
                                     model.close();
                                 } catch (IOException e) {
                                     e.printStackTrace();
                                 }
 
-                                System.out.println("PredictClass " + algoCounter + " " + predictforArrhythmia);
+                                //System.out.println("PredictClass " + algoCounter + " " + predictforArrhythmia);
 
                                 if (predictforArrhythmia == 2 && algoCounter == 9) {
                                     String top = "Arrhythmic " + formattedTime + " SR: 1kHZ";
@@ -1808,22 +1842,18 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         return peakValues;
     }
 
-    public static List<Double> applyMovingAverage(List<Double> signal, int windowSize) {
-        List<Double> smoothedSignal = new ArrayList<>();
-
-        for (int i = 0; i < signal.size(); i++) {
+    public static List<Double> applyMovingAverage(double[] data, int windowSize) {
+        List<Double> smoothedData = new ArrayList<>();
+        for (int i = 0; i < data.length; i++) {
             double sum = 0.0;
             int count = 0;
-
-            for (int j = Math.max(0, i - windowSize); j <= Math.min(signal.size() - 1, i + windowSize); j++) {
-                sum += signal.get(j);
+            for (int j = i; j < i + windowSize && j < data.length; j++) {
+                sum += data[j];
                 count++;
             }
-
-            smoothedSignal.add(sum / count);
+            smoothedData.add(sum / count);
         }
-
-        return smoothedSignal;
+        return smoothedData;
     }
 
     public static List<Double> normalize(List<Double> valueList){
@@ -1994,6 +2024,58 @@ public class PlotterFragment extends ConnectedPeripheralFragment implements Uart
         }
 
         return resampledData;
+    }
+
+    public static double[][] interpolateAndFindPeaks(List<Integer> xData, List<Double> yData) {
+        // Convert List<Integer> to double[]
+        double[] x = xData.stream().mapToDouble(Integer::doubleValue).toArray();
+        // Convert List<Double> to double[]
+        double[] y = yData.stream().mapToDouble(Double::doubleValue).toArray();
+
+        PolynomialSplineFunction splineFunction;
+
+        try {
+            // Create the interpolator and compute the spline function
+            SplineInterpolator interpolator = new SplineInterpolator();
+            splineFunction = interpolator.interpolate(x, y);
+        } catch (NumberIsTooSmallException e) {
+            System.err.println("Not enough points to perform spline interpolation.");
+            return new double[0][0];
+        }
+
+        // Generate a dense set of x-values for the interpolated curve
+        int numPoints = 1000; // Number of points for smooth curve
+        double minX = x[0];
+        double maxX = x[x.length - 1];
+        double[] xValues = new double[numPoints];
+        double step = (maxX - minX) / (numPoints - 1);
+
+        for (int i = 0; i < numPoints; i++) {
+            xValues[i] = minX + i * step;
+        }
+        // Evaluate the spline at the generated x-values
+        double[] interpolatedValues = new double[numPoints];
+        for (int i = 0; i < numPoints; i++) {
+            interpolatedValues[i] = splineFunction.value(xValues[i]);
+        }
+
+        // Prepare the result array
+        double[][] result = new double[2][numPoints];
+        result[0] = xValues;
+        result[1] = interpolatedValues;
+
+        return result;
+    }
+
+    private static List<Double> findPeaksforECGderivedResp(List<Double> values) {
+        List<Double> peakValues = new ArrayList<>();
+        for (int i = 1; i < values.size() - 1; i++) {
+            if (values.get(i) > values.get(i - 1) && values.get(i) > values.get(i + 1)) {
+                peakValues.add(values.get(i));
+                i += 50;
+            }
+        }
+        return peakValues;
     }
 
     // endregion
